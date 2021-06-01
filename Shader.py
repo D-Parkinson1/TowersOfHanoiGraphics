@@ -5,17 +5,19 @@ class Shader:
     vertexSource = ""
     fragmentSource = ""
 
-    def __init__(self, vertex, fragment, attribLocs, fragDataLocs={}):
+    def __init__(self, vertex, fragment, attribLocs=None, fragDataLocs={}):
         self.vertexSource = vertex
         self.fragmentSource = fragment
-        self.program = glCreateProgram()
         vertexShader = self.compileShader(vertex, GL_VERTEX_SHADER)
         fragmentShader = self.compileShader(fragment, GL_FRAGMENT_SHADER)
+
+        self.program = glCreateProgram()
 
         glAttachShader(self.program, vertexShader)
         glAttachShader(self.program, fragmentShader)
 
-        self.bindLocations(attribLocs, fragDataLocs)
+        if attribLocs:
+            self.bindLocations(attribLocs, fragDataLocs)
 
         glLinkProgram(self.program)
 
@@ -28,8 +30,8 @@ class Shader:
             glDeleteShader(fragmentShader)
             return None
 
-        glDetachShader(self.program, vertexShader)
-        glDetachShader(self.program, fragmentShader)
+        # glDetachShader(self.program, vertexShader)
+        # glDetachShader(self.program, fragmentShader)
 
         glDeleteShader(vertexShader)
         glDeleteShader(fragmentShader)
