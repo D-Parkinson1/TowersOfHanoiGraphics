@@ -1,11 +1,14 @@
-import glfw
-import OpenGL.GL as gl
 
-import ObjModel
+from ctypes import c_float
+from OpenGL.GL import *
+
+import ObjModel as Obj
 
 import lab_utils as lu
 
 import Shader as sha
+
+from Window import Window
 # import imgui
 # from imgui.integrations.glfw import GlfwRenderer
 
@@ -29,111 +32,15 @@ def drawCircle(numSegments: int, radius: int = 1):
     return g_triangleVerts
 
     # magic.drawVertexDataAsTriangles(g_triangleVerts)
+torus = None
+
+vao = None
 
 
-class Window:
-
-    def __init__(self, width: int = 1280, height: int = 720, title: str = "Window", render=None):
-        # imgui.create_context()
-
-        # Initialise glfw library
-        if not glfw.init():
-            print("Could not initialise OpenGL context")
-            exit(1)
-
-        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
-        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
-        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-        glfw.window_hint(glfw.SRGB_CAPABLE, 1)
-        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)
-
-        # Create a windowed mode window and its OpenGL context
-        self._win = glfw.create_window(width, height, title, None, None)
-
-        if not self._win:
-            glfw.terminate()
-            print("Could nto initialise window")
-            exit(1)
-
-        glfw.set_window_pos(self._win, 400, 200)
-        # Make the window's context current
-        glfw.make_context_current(self._win)
-
-        # self._renderer = GlfwRenderer(self._win)
-
-        # Set background colour, or colour when nothing rendered
-        gl.glClearColor(0.5, 0.5, 1., 1)
-        if render:
-            self.render = render
-        else:
-            self.render = self.defaultRender
-        # Handle key presses with a callback MUST be run after renderer initialisation for some reason
-        # glfw.set_key_callback(self._win, self.key_callback)
-
-    def defaultRender(self, width, height):
-        gl.glViewport(0, 0, width, height)
-        gl.glClearColor(0.5, 0.5, 1., 1)
-        gl.glClear(gl.GL_DEPTH_BUFFER_BIT | gl.GL_COLOR_BUFFER_BIT)
-
-    def key_callback(window, key, scancode, action, mode, extra):
-        if (key == glfw.KEY_ESCAPE and action == glfw.PRESS):
-            glfw.set_window_should_close(window, True)
-
-    def main(self):
-        #  How often to swap the frame buffers
-        glfw.swap_interval(1)
-
-        gl.glDisable(gl.GL_CULL_FACE)
-        gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glDepthFunc(gl.GL_LEQUAL)
-
-        # Loop until window close flag is set.
-        while not glfw.window_should_close(self._win):
-            width, height = glfw.get_framebuffer_size(self._win)
-            # Render here
-            # imgui.new_frame()
-            # imgui.begin("Debug window", True)
-            # imgui.text("Test text")
-            # imgui.end()
-
-            gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-            self.render(width, height)
-            # imgui.render()
-            # self._renderer.render(imgui.get_draw_data())
-
-            # Poll for process events - MUST HAVE, or window hangs
-            glfw.poll_events()
-
-            # swap front and back buffers
-            glfw.swap_buffers(self._win)
-
-            # self._renderer.process_inputs()
-
-        # self._renderer.shutdown()
-
-        # Must terminate glfw before exiting.
-        # This will destroy any remaining windows, and released allocated resources.
-        glfw.terminate()
-
-
-def createAndAddVertexArrayData(vertexArrayObject, data, attributeIndex):
-    gl.glBindVertexArray(vertexArrayObject)
-    buffer = gl.glGenBuffers(1)
-    lu.uploadFloatData(buffer, data)
-
-    gl.glBindBuffer(gl.GL_ARRAY_BUFFER, buffer)
-    gl.glVertexAttribPointer(attributeIndex, len(
-        data[0]), gl.GL_FLOAT, gl.GL_FALSE, 0, None)
-    gl.glEnableVertexAttribArray(attributeIndex)
-
-    # Unbind the buffers again to avoid unintentianal GL state corruption (this is something that can be rather inconventient to debug)
-    gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
-    gl.glBindVertexArray(0)
-
-    return buffer
-
-
-def render(width, height):
+def initResources():
+    global vao
+    # global torus
+    # torus = Obj.ObjModel("objects/torus.obj")
     vertexShader = """
     #version 330
     in vec3 positionIn;
@@ -150,25 +57,107 @@ def render(width, height):
 
     void main() 
     {
-	    fragmentColor = vec4(1.0);
+	    fragmentColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
     }
     """
-    gl.glViewport(0, 0, width, height)
     # Set the colour we want the frame buffer cleared to,
-    gl.glClearColor(0.2, 0.3, 0.1, 1.0)
+    glClearColor(0.2, 0.3, 0.1, 1.0)
     # Tell OpenGL to clear the render target to the clear values for both depth and colour buffers (depth uses the default)
-    gl.glClear(gl.GL_DEPTH_BUFFER_BIT | gl.GL_COLOR_BUFFER_BIT)
-    verts = drawCircle(28)
-    numVerts = len(verts)
-    vertsArrayObj = gl.glGenVertexArrays(1)
-    createAndAddVertexArrayData(vertsArrayObj, verts, 0)
-    shader = sha.Shader(vertexShader, fragmentShader, {
-        "positionIn": 0, "normalIn": 1})
-    gl.glUseProgram(shader.program)
-    gl.glBindVertexArray(vertsArrayObj)
-    gl.glDrawArrays(gl.GL_TRIANGLES, 0, numVerts)
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT)
+    shader = sha.Shader(vertexShader, fragmentShader)
+    vertices = [
+        -0.5, -0.5, 0,
+        0.5, -0.5, 0,
+        0, 0.5, 0
+    ]
+    vao = glGenVertexArrays(1)
+    glBindVertexArray(vao)
+
+    vbo = glGenBuffers(1)
+    data_buffer = (c_float * len(vertices))(*vertices)
+    # Upload data to the currently bound GL_ARRAY_BUFFER, note that this is
+    # completely anonymous binary data, no type information is retained (we'll
+    # supply that later in glVertexAttribPointer)
+    glBindBuffer(GL_ARRAY_BUFFER, vbo)
+    glBufferData(GL_ARRAY_BUFFER, data_buffer, GL_STATIC_DRAW)
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+                          3*ctypes.sizeof(GLfloat), None)
+    glEnableVertexAttribArray(0)
+    glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+    glUseProgram(shader.program)
+
+
+def createAndAddVertexArrayData(vertexArrayObject, data, attributeIndex):
+    glBindVertexArray(vertexArrayObject)
+    buffer = glGenBuffers(1)
+    lu.uploadFloatData(buffer, data)
+
+    glBindBuffer(GL_ARRAY_BUFFER, buffer)
+    glVertexAttribPointer(attributeIndex, len(
+        data[0]), GL_FLOAT, GL_FALSE, 0, None)
+    glEnableVertexAttribArray(attributeIndex)
+
+    # Unbind the buffers again to avoid unintentianal GL state corruption (this is something that can be rather inconventient to debug)
+    glBindBuffer(GL_ARRAY_BUFFER, 0)
+    glBindVertexArray(0)
+
+    return buffer
+
+
+def render(width, height):
+    # global g_torus
+    glBindVertexArray(vao)
+    glDrawArrays(GL_TRIANGLES, 0, 3)
+    # verts = drawCircle(28)
+    # numVerts = len(verts)
+    # vertsArrayObj = gl.glGenVertexArrays(1)
+    # createAndAddVertexArrayData(vertsArrayObj, verts, 0)
+    # shader = sha.Shader(vertexShader, fragmentShader, {
+    #     "positionIn": 0, "normalIn": 1})
+    # gl.glUseProgram(shader.program)
+    # gl.glBindVertexArray(vertsArrayObj)
+    # gl.glDrawArrays(gl.GL_TRIANGLES, 0, numVerts)
+
+    # drawObjModel(lu.Mat4(), lu.Mat4(), lu.Mat4(), torus)
+
+
+def drawObjModel(viewToClipTfm, worldToViewTfm, modelToWorldTfm, model):
+    # Lighting/Shading is very often done in view space, which is why a transformation that lands positions in this space is needed
+    modelToViewTransform = worldToViewTfm * modelToWorldTfm
+
+    # this is a special transform that ensures that normal vectors remain orthogonal to the
+    # surface they are supposed to be even in the prescence of non-uniform scaling.
+    # It is a 3x3 matrix as vectors don't need translation anyway and this transform is only for vectors,
+    # not points. If there is no non-uniform scaling this is just the same as Mat3(modelToViewTransform)
+    modelToViewNormalTransform = lu.inverse(
+        lu.transpose(lu.Mat3(modelToViewTransform)))
+
+    # Bind the shader program such that we can set the uniforms (model.render sets it again)
+    glUseProgram(model.defaultShader)
+
+    # transform (rotate) light direction into view space (as this is what the ObjModel shader wants)
+    viewSpaceLightDirection = lu.normalize(
+        lu.Mat3(worldToViewTfm) * [-1, -1, -1])
+    glUniform3fv(glGetUniformLocation(model.defaultShader,
+                                      "viewSpaceLightDirection"), 1, viewSpaceLightDirection)
+
+    # This dictionary contains a few transforms that are needed to render the ObjModel using the default shader.
+    # it would be possible to just set the modelToWorld transform, as this is the only thing that changes between
+    # the objects, and compute the other matrices in the vertex shader.
+    # However, this would push a lot of redundant computation to the vertex shader and makes the code less self contained,
+    # in this way we set all the required parameters explicitly.
+    transforms = {
+        "modelToClipTransform": viewToClipTfm * worldToViewTfm * modelToWorldTfm,
+        "modelToViewTransform": modelToViewTransform,
+        "modelToViewNormalTransform": modelToViewNormalTransform,
+    }
+
+    model.render(None, None, transforms)
 
 
 if __name__ == "__main__":
-    window = Window(1280, 720, "Towers of Hanoi", render=render)
+    window = Window(1280, 720, "Towers of Hanoi",
+                    render=render, initResources=initResources)
     window.main()
