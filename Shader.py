@@ -2,14 +2,18 @@ from OpenGL.GL import *
 
 
 class Shader:
-    vertexSource = ""
-    fragmentSource = ""
 
-    def __init__(self, vertex, fragment, attribLocs=None, fragDataLocs={}):
-        self.vertexSource = vertex
-        self.fragmentSource = fragment
-        vertexShader = self.compileShader(vertex, GL_VERTEX_SHADER)
-        fragmentShader = self.compileShader(fragment, GL_FRAGMENT_SHADER)
+    def __init__(self, vertFile='shaders/vertex.glsl', fragFile='shaders/fragment.glsl', attribLocs=None, fragDataLocs={}):
+        self.vertexFile = vertFile
+        self.fragmentFile = fragFile
+        vertexShader = ""
+        with open(vertFile) as f:
+            vertexShader = f.read()
+        fragmentShader = ""
+        with open(fragFile) as f:
+            fragmentShader = f.read()
+        vertexShader = self.compileShader(vertexShader, GL_VERTEX_SHADER)
+        fragmentShader = self.compileShader(fragmentShader, GL_FRAGMENT_SHADER)
 
         self.program = glCreateProgram()
 
