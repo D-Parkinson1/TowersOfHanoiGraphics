@@ -3,7 +3,9 @@ from OpenGL.GL import *
 
 class Shader:
 
-    def __init__(self, vertFile='shaders/vertex.glsl', fragFile='shaders/fragment.glsl', attribLocs=None, fragDataLocs={}):
+    def __init__(self, vertFile='shaders/vertex.glsl', fragFile='shaders/fragment.glsl'):
+        # , attribLocs=None, fragDataLocs={}):
+
         self.vertexFile = vertFile
         self.fragmentFile = fragFile
         vertexShader = ""
@@ -20,8 +22,8 @@ class Shader:
         glAttachShader(self.program, vertexShader)
         glAttachShader(self.program, fragmentShader)
 
-        if attribLocs:
-            self.bindLocations(attribLocs, fragDataLocs)
+        # if attribLocs:
+        #     self.bindLocations(attribLocs, fragDataLocs)
 
         glLinkProgram(self.program)
 
@@ -33,9 +35,6 @@ class Shader:
             glDeleteShader(vertexShader)
             glDeleteShader(fragmentShader)
             return None
-
-        # glDetachShader(self.program, vertexShader)
-        # glDetachShader(self.program, fragmentShader)
 
         glDeleteShader(vertexShader)
         glDeleteShader(fragmentShader)
@@ -58,18 +57,19 @@ class Shader:
             glDeleteShader(shader)
             raise
 
-    def bindLocations(self, attribLocs, fragDataLocs):
-            # Link the attribute names we used in the vertex shader to the integer index
-        for name, loc in attribLocs.items():
-            glBindAttribLocation(self.program, loc, name)
+    def use(self):
+        glUseProgram(self.program)
 
-            # If we have multiple images bound as render targets, we need to specify which
-            # 'out' variable in the fragment shader goes where in this case it is totally redundant
-        # as we only have one (the default render target, or frame buffer) and the default binding is always zero.
-        for name, loc in fragDataLocs.items():
-            glBindFragDataLocation(self.program, loc, name)
+    def setInt(self, name, value: int):
+        glUniform1i(glGetUniformLocation(self.program, name), value)
 
-    def getShaderInfoLog(obj):
+    def setBool(self, name, value: bool):
+        glUniform1i(glGetUniformLocation(self.program, name), value)
+
+    def setFloat(self, name, value: float):
+        glUniform1f(glGetUniformLocation(self.program, name), value)
+
+    def getShaderInfoLog(self, obj):
         logLength = glGetShaderiv(obj, GL_INFO_LOG_LENGTH)
 
         if logLength > 0:
@@ -77,8 +77,16 @@ class Shader:
 
         return ""
 
-    def uniformLocation(self, name):
-        return glGetUniformLocation(self.program, name)
-
     def attributeLocation(self, name):
         return glGetAttribLocation(self.program, name)
+
+    # def bindLocations(self, attribLocs, fragDataLocs):
+    #     # Link the attribute names we used in the vertex shader to the integer index
+    # for name, loc in attribLocs.items():
+    #     glBindAttribLocation(self.program, loc, name)
+
+    #     # If we have multiple images bound as render targets, we need to specify which
+    #     # 'out' variable in the fragment shader goes where in this case it is totally redundant
+    # # as we only have one (the default render target, or frame buffer) and the default binding is always zero.
+    # for name, loc in fragDataLocs.items():
+    #     glBindFragDataLocation(self.program, loc, name)
