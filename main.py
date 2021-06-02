@@ -1,6 +1,7 @@
 
 from ctypes import c_float, c_uint, c_void_p
 from OpenGL.GL import *
+import glfw
 
 import ObjModel as Obj
 
@@ -30,7 +31,6 @@ def drawCircle(numSegments: int, radius: int = 1):
         g_triangleVerts.append([x, y, 0])
         g_triangleVerts.append([x2, y2, 0])
     return g_triangleVerts
-
 
     # magic.drawVertexDataAsTriangles(g_triangleVerts)
 torus = None
@@ -89,11 +89,13 @@ def createAndAddVertexArrayData(vertexArrayObject, data, attributeIndex):
 
 vao = None
 ebo = None
+shader = None
 
 
 def initResources():
     global vao
     global ebo
+    global shader
     # global torus
     # torus = Obj.ObjModel("objects/torus.obj")
     # vertexShader = """
@@ -119,22 +121,15 @@ def initResources():
     glClearColor(0.2, 0.3, 0.1, 1.0)
     # Tell OpenGL to clear the render target to the clear values for both depth and colour buffers (depth uses the default)
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT)
-    shader = sha.Shader()  # Default shader
-    verticesEBO = [
-        -0.5, -0.5, 0,
-        0.5, -0.5, 0,
-        0.5, 0.5, 0,
-        # second triangle
-        -0.5, 0.5, 0,
-        0.5, 0.5, 0,
-        - 0.5, -0.5, 0
-    ]
+    shader = sha.Shader(vertFile='shaders/uniformVert.glsl',
+                        fragFile='shaders/uniformFrag.glsl')  # Default shader
 
+    # coords, colours
     vertices = [
-        0.5, 0.5, 0,
-        0.5, -0.5, 0,
-        -0.5, -0.5, 0,
-        -0.5, 0.5, 0,
+        0.5, 0.5, 0, 1.0, 0, 0,
+        0.5, -0.5, 0, 0, 1.0, 0,
+        -0.5, -0.5, 0, 0, 0, 1.0,
+        -0.5, 0.5, 0, 1.0, 1.0, 1.0
     ]
     indices = [
         0, 1, 3,
@@ -156,23 +151,35 @@ def initResources():
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, len(indices) *
                  ctypes.sizeof(GLuint), index_buffer, GL_STATIC_DRAW)
 
+    # position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-                          3*ctypes.sizeof(GLfloat), None)
+                          6*ctypes.sizeof(GLfloat), None)
     glEnableVertexAttribArray(0)
+
+    # colour attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+                          6*ctypes.sizeof(GLfloat), None)
+    glEnableVertexAttribArray(1)
 
     glBindBuffer(GL_ARRAY_BUFFER, 0)
     glBindVertexArray(0)
 
-    glUseProgram(shader.program)
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+    # For wireframe
+    # glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
 
 def render(width, height):
     # global g_torus
-    glBindVertexArray(vao)
-    # glDrawArrays(GL_TRIANGLES, 0, 6)
 
-    # glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+    # glDrawArrays(GL_TRIANGLES, 0, 6)
+    time = glfw.get_time()
+    greenValue = sin(time) / 2.0 + 0.5
+
+    # loc = shader.uniformLocation('ourColour')
+    shader.use()
+    # glUniform4f(loc, 0.0, greenValue, 140.0, 1.0)
+
+    glBindVertexArray(vao)
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
 
     # verts = drawCircle(28)
