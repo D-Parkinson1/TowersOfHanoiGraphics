@@ -1,3 +1,5 @@
+import numpy as np
+from lab_utils import Mat3, Mat4
 from OpenGL.GL import *
 
 
@@ -60,14 +62,23 @@ class Shader:
     def use(self):
         glUseProgram(self.program)
 
-    def setInt(self, name, value: int):
-        glUniform1i(glGetUniformLocation(self.program, name), value)
-
-    def setBool(self, name, value: bool):
-        glUniform1i(glGetUniformLocation(self.program, name), value)
-
-    def setFloat(self, name, value: float):
-        glUniform1f(glGetUniformLocation(self.program, name), value)
+    def setUniform(self, uniformName, value):
+        loc = glGetUniformLocation(self.program, uniformName)
+        if isinstance(value, float):
+            glUniform1f(loc, value)
+        elif isinstance(value, int):
+            glUniform1i(loc, value)
+        elif isinstance(value, (np.ndarray, list)):
+            if len(value) == 2:
+                glUniform2fv(loc, 1, value)
+            if len(value) == 3:
+                glUniform3fv(loc, 1, value)
+            if len(value) == 4:
+                glUniform4fv(loc, 1, value)
+        elif isinstance(value, (Mat3, Mat4)):
+            value._set_open_gl_uniform(loc)
+        else:
+            assert False  # If this happens the type was not supported, check your argument types and either add a new else case above or change the type
 
     def getShaderInfoLog(self, obj):
         logLength = glGetShaderiv(obj, GL_INFO_LOG_LENGTH)
