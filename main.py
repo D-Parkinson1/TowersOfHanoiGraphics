@@ -16,7 +16,7 @@ from Window import Window
 # from imgui.integrations.glfw import GlfwRenderer
 
 import numpy as np
-from math import sin, cos, pi
+from math import radians, sin, cos, pi
 
 
 def drawCircle(numSegments: int, radius: int = 1):
@@ -129,8 +129,8 @@ def initResources():
     # Tell OpenGL to clear the render target to the clear values for both depth and colour buffers (depth uses the default)
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT)
     # shader = sha.Shader(vertFile='shaders/uniformVert.glsl', fragFile='shaders/uniformFrag.glsl')
-    shader = sha.Shader(vertFile='shaders/TexVert.glsl',
-                        fragFile='shaders/TexFrag.glsl')
+    shader = sha.Shader(vertFile='shaders/transformVert.glsl',
+                        fragFile='shaders/transformFrag.glsl')
 
     # coords, colours, texcoords
     vertices = [
@@ -144,65 +144,103 @@ def initResources():
         1, 2, 3
     ]
 
+    cubeVerts = [
+        -0.5, -0.5, -0.5,  0.0, 0.0,
+        0.5, -0.5, -0.5,  1.0, 0.0,
+        0.5,  0.5, -0.5,  1.0, 1.0,
+        0.5,  0.5, -0.5,  1.0, 1.0,
+        -0.5,  0.5, -0.5,  0.0, 1.0,
+        -0.5, -0.5, -0.5,  0.0, 0.0,
+
+        -0.5, -0.5,  0.5,  0.0, 0.0,
+        0.5, -0.5,  0.5,  1.0, 0.0,
+        0.5,  0.5,  0.5,  1.0, 1.0,
+        0.5,  0.5,  0.5,  1.0, 1.0,
+        -0.5,  0.5,  0.5,  0.0, 1.0,
+        -0.5, -0.5,  0.5,  0.0, 0.0,
+
+        -0.5,  0.5,  0.5,  1.0, 0.0,
+        -0.5,  0.5, -0.5,  1.0, 1.0,
+        -0.5, -0.5, -0.5,  0.0, 1.0,
+        -0.5, -0.5, -0.5,  0.0, 1.0,
+        -0.5, -0.5,  0.5,  0.0, 0.0,
+        -0.5,  0.5,  0.5,  1.0, 0.0,
+
+        0.5,  0.5,  0.5,  1.0, 0.0,
+        0.5,  0.5, -0.5,  1.0, 1.0,
+        0.5, -0.5, -0.5,  0.0, 1.0,
+        0.5, -0.5, -0.5,  0.0, 1.0,
+        0.5, -0.5,  0.5,  0.0, 0.0,
+        0.5,  0.5,  0.5,  1.0, 0.0,
+
+        -0.5, -0.5, -0.5,  0.0, 1.0,
+        0.5, -0.5, -0.5,  1.0, 1.0,
+        0.5, -0.5,  0.5,  1.0, 0.0,
+        0.5, -0.5,  0.5,  1.0, 0.0,
+        -0.5, -0.5,  0.5,  0.0, 0.0,
+        -0.5, -0.5, -0.5,  0.0, 1.0,
+
+        -0.5,  0.5, -0.5,  0.0, 1.0,
+        0.5,  0.5, -0.5,  1.0, 1.0,
+        0.5,  0.5,  0.5,  1.0, 0.0,
+        0.5,  0.5,  0.5,  1.0, 0.0,
+        -0.5,  0.5,  0.5,  0.0, 0.0,
+        -0.5,  0.5, -0.5,  0.0, 1.0
+    ]
     vao = glGenVertexArrays(1)
     vbo = glGenBuffers(1)
-    ebo = glGenBuffers(1)
+    # ebo = glGenBuffers(1)
 
     glBindVertexArray(vao)
 
-    data_buffer = (c_float * len(vertices))(*vertices)
+    ##############################CUBE START ##################################
+    #######################################################################
+    cube_buffer = (c_float * len(cubeVerts))(*cubeVerts)
     glBindBuffer(GL_ARRAY_BUFFER, vbo)
-    glBufferData(GL_ARRAY_BUFFER, len(vertices) * ctypes.sizeof(GLfloat), data_buffer, GL_STATIC_DRAW)
-
-    index_buffer = (c_uint * len(indices))(*indices)
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, len(indices) * ctypes.sizeof(GLuint), index_buffer, GL_STATIC_DRAW)
+    glBufferData(GL_ARRAY_BUFFER, len(cubeVerts) * ctypes.sizeof(GLfloat), cube_buffer, GL_STATIC_DRAW)
 
     # position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), c_void_p(0))
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * ctypes.sizeof(GLfloat), c_void_p(0))
     glEnableVertexAttribArray(0)
 
-    # colour attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), c_void_p(3 * ctypes.sizeof(GLfloat)))
+    # texture attribute
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * ctypes.sizeof(GLfloat), c_void_p(3 * ctypes.sizeof(GLfloat)))
     glEnableVertexAttribArray(1)
 
-    # texture attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), c_void_p(6 * ctypes.sizeof(GLfloat)))
-    glEnableVertexAttribArray(2)
+    ###################################
+    ### END CUBE###########
+    ##########################
 
-    # with Image.open('textures/container.jpg') as image:
-    #     data = image.tobytes("raw", "RGBX" if image.mode == 'RGB' else "RGBA", 0, -1)
-    # texture1 = glGenTextures(1)
-    # glBindTexture(GL_TEXTURE_2D, texture1)
+    # data_buffer = (c_float * len(vertices))(*vertices)
+    # glBindBuffer(GL_ARRAY_BUFFER, vbo)
+    # glBufferData(GL_ARRAY_BUFFER, len(vertices) * ctypes.sizeof(GLfloat), data_buffer, GL_STATIC_DRAW)
 
-    # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-    # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-    # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-    # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+    # index_buffer = (c_uint * len(indices))(*indices)
+    # glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+    # glBufferData(GL_ELEMENT_ARRAY_BUFFER, len(indices) * ctypes.sizeof(GLuint), index_buffer, GL_STATIC_DRAW)
 
-    # glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.size[0], image.size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
-    # glGenerateMipmap(GL_TEXTURE_2D)
-    # # Free data
-    # data = None
+    # # position attribute
+    # glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), c_void_p(0))
+    # glEnableVertexAttribArray(0)
+
+    # # colour attribute
+    # glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), c_void_p(3 * ctypes.sizeof(GLfloat)))
+    # glEnableVertexAttribArray(1)
+
+    # # texture attribute
+    # glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), c_void_p(6 * ctypes.sizeof(GLfloat)))
+    # glEnableVertexAttribArray(2)
+
     texture1 = Texture('textures/container.jpg')
     texture2 = Texture('textures/awesomeface.png')
 
-    # with Image.open('textures/awesomeface.png') as image:
-    #     data = image.tobytes("raw", "RGBX" if image.mode == 'RGB' else "RGBA", 0, -1)
-    # texture2 = glGenTextures(1)
-    # glBindTexture(GL_TEXTURE_2D, texture2)
-
-    # glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.size[0], image.size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
-    # glGenerateMipmap(GL_TEXTURE_2D)
-
-    # # Free data
-    # data = None
-
     glBindBuffer(GL_ARRAY_BUFFER, 0)
     glBindVertexArray(0)
+
     shader.use()
     shader.setUniform("texture2", 1)
     shader.setUniform("texture1", 0)
+
     # For wireframe
     # glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
@@ -210,24 +248,34 @@ def initResources():
 def render(width, height):
     # global g_torus
 
-    # glDrawArrays(GL_TRIANGLES, 0, 6)
-    time = glfw.get_time()
-    greenValue = sin(time) / 2.0 + 0.5
-
-    # loc = shader.uniformLocation('ourColour')
-
-    # glUniform4f(loc, 0.0, greenValue, 140.0, 1.0)
-
-    # glActiveTexture(GL_TEXTURE0)
-    # glBindTexture(GL_TEXTURE_2D, texture1)
     texture1.bind()
     texture2.bind(texUnit=1)
-    # glActiveTexture(GL_TEXTURE1)
-    # glBindTexture(GL_TEXTURE_2D, texture2)
 
-    shader.use()
+    # shader.use()
+    # scale = lu.make_scale(0.5)
+    # translate = lu.make_translation(0, 0, 0)
+    # rotate = lu.make_rotation_z(glfw.get_time())
+    # tfm = rotate * translate * scale
+    # shader.setUniform("transform", scale)
+    angle = glfw.get_time() * 25
+    model = lu.make_rotation_x(radians(angle)) * lu.make_rotation_y(radians(2*angle))
+    view = lu.make_translation(0, 0, -3)
+    projection = lu.make_perspective(45, width/(2*height), 0.1, 100)
+    shader.setUniform("model", model)
+    shader.setUniform("view", view)
+    shader.setUniform("projection", projection)
     glBindVertexArray(vao)
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
+
+    glDrawArrays(GL_TRIANGLES, 0, 36)
+    # glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
+
+    # shader.use()
+    # scale = lu.make_scale(sin(glfw.get_time()))
+    # translate = lu.make_translation(-0.75, 0.75, 0)
+    # rotate = lu.make_rotation_z(0)
+    # tfm = translate * rotate * scale
+    # shader.setUniform("transform", tfm)
+    # glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
 
     # verts = drawCircle(28)
     # numVerts = len(verts)
@@ -243,6 +291,6 @@ def render(width, height):
 
 
 if __name__ == "__main__":
-    window = Window(1280, 720, "Towers of Hanoi",
+    window = Window(800, 600, "Towers of Hanoi",
                     render=render, initResources=initResources)
     window.main()
