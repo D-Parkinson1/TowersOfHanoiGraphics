@@ -1,6 +1,8 @@
 
+from Texture import Texture
 from ctypes import c_float, c_uint, c_void_p
 from OpenGL.GL import *
+from PIL import Image
 import glfw
 
 import ObjModel as Obj
@@ -31,6 +33,7 @@ def drawCircle(numSegments: int, radius: int = 1):
         g_triangleVerts.append([x, y, 0])
         g_triangleVerts.append([x2, y2, 0])
     return g_triangleVerts
+
 
     # magic.drawVertexDataAsTriangles(g_triangleVerts)
 torus = None
@@ -90,12 +93,16 @@ def createAndAddVertexArrayData(vertexArrayObject, data, attributeIndex):
 vao = None
 ebo = None
 shader = None
+texture1 = None
+texture2 = None
 
 
 def initResources():
     global vao
     global ebo
     global shader
+    global texture1
+    global texture2
     # global torus
     # torus = Obj.ObjModel("objects/torus.obj")
     # vertexShader = """
@@ -121,20 +128,22 @@ def initResources():
     glClearColor(0.2, 0.3, 0.1, 1.0)
     # Tell OpenGL to clear the render target to the clear values for both depth and colour buffers (depth uses the default)
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT)
-    shader = sha.Shader(vertFile='shaders/uniformVert.glsl',
-                        fragFile='shaders/uniformFrag.glsl')  # Default shader
+    # shader = sha.Shader(vertFile='shaders/uniformVert.glsl', fragFile='shaders/uniformFrag.glsl')
+    shader = sha.Shader(vertFile='shaders/TexVert.glsl',
+                        fragFile='shaders/TexFrag.glsl')
 
-    # coords, colours
+    # coords, colours, texcoords
     vertices = [
-        0.5, 0.5, 0, 1.0, 0, 0,
-        0.5, -0.5, 0, 0, 1.0, 0,
-        -0.5, -0.5, 0, 0, 0, 1.0,
-        -0.5, 0.5, 0, 1.0, 1.0, 1.0
+        0.5,  0.5, 0.0,  1.0, 0.0, 0.0,  1.0, 1.0,
+        0.5, -0.5, 0.0,  0.0, 1.0, 0.0,  1.0, 0.0,
+        -0.5, -0.5, 0.0,  0.0, 0.0, 1.0,  0.0, 0.0,
+        -0.5,  0.5, 0.0,  1.0, 1.0, 0.0,  0.0, 1.0
     ]
     indices = [
         0, 1, 3,
         1, 2, 3
     ]
+
     vao = glGenVertexArrays(1)
     vbo = glGenBuffers(1)
     ebo = glGenBuffers(1)
@@ -143,27 +152,57 @@ def initResources():
 
     data_buffer = (c_float * len(vertices))(*vertices)
     glBindBuffer(GL_ARRAY_BUFFER, vbo)
-    glBufferData(GL_ARRAY_BUFFER, len(vertices) *
-                 ctypes.sizeof(GLfloat), data_buffer, GL_STATIC_DRAW)
+    glBufferData(GL_ARRAY_BUFFER, len(vertices) * ctypes.sizeof(GLfloat), data_buffer, GL_STATIC_DRAW)
 
     index_buffer = (c_uint * len(indices))(*indices)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, len(indices) *
-                 ctypes.sizeof(GLuint), index_buffer, GL_STATIC_DRAW)
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, len(indices) * ctypes.sizeof(GLuint), index_buffer, GL_STATIC_DRAW)
 
     # position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-                          6*ctypes.sizeof(GLfloat), None)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), c_void_p(0))
     glEnableVertexAttribArray(0)
 
     # colour attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
-                          6*ctypes.sizeof(GLfloat), None)
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), c_void_p(3 * ctypes.sizeof(GLfloat)))
     glEnableVertexAttribArray(1)
+
+    # texture attribute
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), c_void_p(6 * ctypes.sizeof(GLfloat)))
+    glEnableVertexAttribArray(2)
+
+    # with Image.open('textures/container.jpg') as image:
+    #     data = image.tobytes("raw", "RGBX" if image.mode == 'RGB' else "RGBA", 0, -1)
+    # texture1 = glGenTextures(1)
+    # glBindTexture(GL_TEXTURE_2D, texture1)
+
+    # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+    # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+    # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+    # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+
+    # glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.size[0], image.size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
+    # glGenerateMipmap(GL_TEXTURE_2D)
+    # # Free data
+    # data = None
+    texture1 = Texture('textures/container.jpg')
+    texture2 = Texture('textures/awesomeface.png')
+
+    # with Image.open('textures/awesomeface.png') as image:
+    #     data = image.tobytes("raw", "RGBX" if image.mode == 'RGB' else "RGBA", 0, -1)
+    # texture2 = glGenTextures(1)
+    # glBindTexture(GL_TEXTURE_2D, texture2)
+
+    # glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.size[0], image.size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
+    # glGenerateMipmap(GL_TEXTURE_2D)
+
+    # # Free data
+    # data = None
 
     glBindBuffer(GL_ARRAY_BUFFER, 0)
     glBindVertexArray(0)
-
+    shader.use()
+    shader.setUniform("texture2", 1)
+    shader.setUniform("texture1", 0)
     # For wireframe
     # glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
@@ -176,9 +215,17 @@ def render(width, height):
     greenValue = sin(time) / 2.0 + 0.5
 
     # loc = shader.uniformLocation('ourColour')
-    shader.use()
+
     # glUniform4f(loc, 0.0, greenValue, 140.0, 1.0)
 
+    # glActiveTexture(GL_TEXTURE0)
+    # glBindTexture(GL_TEXTURE_2D, texture1)
+    texture1.bind()
+    texture2.bind(texUnit=1)
+    # glActiveTexture(GL_TEXTURE1)
+    # glBindTexture(GL_TEXTURE_2D, texture2)
+
+    shader.use()
     glBindVertexArray(vao)
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
 
