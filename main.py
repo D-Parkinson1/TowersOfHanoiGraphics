@@ -195,6 +195,7 @@ class Hanoi:
         camZ = cos(glfw.get_time()) * radius
         view = make_lookAt(vec3(camX, 0, camZ), vec3(0), vec3(0, 1, 0))
         projection = make_perspective(45, width/height, 0.1, 100)
+        self.shader.use()
         self.shader.setUniform("model", model)
         self.shader.setUniform("view", view)
         self.shader.setUniform("projection", projection)
@@ -211,6 +212,7 @@ class Hanoi:
             glDrawArrays(GL_TRIANGLES, 0, 36)
 
         glDrawArrays(GL_TRIANGLES, 0, 36)
+        self.light.draw(projection, view)
         # glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
 
         # shader.use()
