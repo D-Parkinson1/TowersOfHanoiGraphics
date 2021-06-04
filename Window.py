@@ -53,10 +53,6 @@ class Window:
         glClearColor(0.529, 0.808, .922, 1)
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT)
 
-    def key_callback(window, key, scancode, action, mode, extra):
-        if (key == glfw.KEY_ESCAPE and action == glfw.PRESS):
-            glfw.set_window_should_close(window, True)
-
     def resize(self, window, width, height):
         glViewport(0, 0, width, height)
 

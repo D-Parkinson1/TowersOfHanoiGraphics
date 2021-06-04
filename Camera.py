@@ -57,3 +57,11 @@ class Camera:
             if (self.pitch < -89):
                 self.pitch = -89
         self.calcPosVectors()
+
+    def processMouseScroll(self, yOffset):
+        self.zoom -= yOffset
+
+        if (self.zoom < 1):
+            self.zoom = 1
+        if (self.zoom > 45):
+            self.zoom = 45

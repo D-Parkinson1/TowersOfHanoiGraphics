@@ -1,11 +1,11 @@
 
+import glfw
 from Camera import Camera, CameraMovement
 from LightSource import LightSource
 from Texture import Texture
 from ctypes import c_float, c_uint, c_void_p
 from OpenGL.GL import *
 from PIL import Image
-import glfw
 
 import ObjModel as Obj
 
@@ -35,7 +35,6 @@ def drawCircle(numSegments: int, radius: int = 1):
         g_triangleVerts.append([x, y, 0])
         g_triangleVerts.append([x2, y2, 0])
     return g_triangleVerts
-
 
     # magic.drawVertexDataAsTriangles(g_triangleVerts)
 torus = None
@@ -210,13 +209,44 @@ class Hanoi:
         vec3(-1.3,  1.0, -1.5)
     ]
 
-    def __init__(self):
-        self.window = Window(800, 600, "Towers of Hanoi", render=self.render,
+    def __init__(self, width=800, height=800):
+        self.window = Window(width, height, "Towers of Hanoi", render=self.render,
                              initResources=self.initResources, processInput=self.processInput)
-        self.light = LightSource(vec3(1.2, 1.0, 2.0))
-        self.camera = Camera(vec3(0, 0, 3))
+        # Capture the mosuse
+        glfw.set_input_mode(self.window._win, glfw.CURSOR, glfw.CURSOR_DISABLED)
+
+        # Callabcks for mouse input
+        glfw.set_cursor_pos_callback(self.window._win, self.mouseCallback)
+        glfw.set_scroll_callback(self.window._win, self.scrollCallback)
+
+        # Last camera position
+        self.lastX = width / 2
+        self.lastY = height / 2
+        # First mouse move
+
+        self.firstMouse = True
         self.deltaTime = 0
         self.lastFrame = 0
+
+        self.light = LightSource(vec3(1.2, 1.0, 2.0))
+        self.camera = Camera(vec3(0, 0, 3))
+
+    def mouseCallback(self, window, xPos, yPos):
+        print("MOUSE CALLBACK")
+        if (self.firstMouse):
+            self.lastX = xPos
+            self.lastY = yPos
+            self.firstMouse = False
+
+        xOffset = xPos - self.lastX
+        yOffset = self.lastY - yPos
+        self.lastX = xPos
+        self.lastY = yPos
+
+        self.camera.processMouse(xOffset, yOffset)
+
+    def scrollCallback(self, window, xOffset, yOffset):
+        self.camera.processMouseScroll(yOffset)
 
     def start(self):
         self.window.main()
@@ -248,29 +278,32 @@ class Hanoi:
         # camPos = vec3(camX, 0, camZ)
         view = make_lookAt(self.camera.position, vec3(0), vec3(0, 1, 0))
         projection = make_perspective(45, width/height, 0.1, 100)
+
+        self.light.shader.use()
+        lightColour = vec3(sin(glfw.get_time() * 2.0), sin(glfw.get_time() * 0.7), sin(glfw.get_time() * 1.3))
+        self.light.colour = lightColour
+        self.light.shader.setUniform("lightColour", lightColour)
+
         self.shader.use()
         self.shader.setUniform("model", model)
         self.shader.setUniform("view", view)
         self.shader.setUniform("projection", projection)
-        self.shader.setUniform("objectColour", vec3(1.0, 0.5, 0.3))
-        self.shader.setUniform("lightColour", vec3(1.0, 1.0, 1.0))
-        self.shader.setUniform("lightPos", self.light.position)
+        self.shader.setUniform("lightColour", self.light.colour)
+        self.shader.setUniform("light.position", self.light.position)
         self.shader.setUniform("viewPos", self.camera.position)
         glBindVertexArray(self.vao)
 
-        for i in range(10):
-            model = make_translation(*self.cubePositions[i])
-            angle = 20.0 * i
-            model *= make_rotation_x(radians(angle)) * make_rotation_y(radians(0.3*angle))
-            if i % 3 == 0:
-                model *= make_rotation_z(radians(angle*glfw.get_time()))
-            self.shader.setUniform("model", model)
+        # for i in range(10):
+        #     model = make_translation(*self.cubePositions[i])
+        #     angle = 20.0 * i
+        #     model *= make_rotation_x(radians(angle)) * make_rotation_y(radians(0.3*angle))
+        #     if i % 3 == 0:
+        #         model *= make_rotation_z(radians(angle*glfw.get_time()))
+        #     self.shader.setUniform("model", model)
 
-            glDrawArrays(GL_TRIANGLES, 0, 36)
+        #     glDrawArrays(GL_TRIANGLES, 0, 36)
 
         glDrawArrays(GL_TRIANGLES, 0, 36)
-        self.light.position[0] = 1.0 + sin(glfw.get_time()) * 2.0
-        self.light.position[1] = 1.0 + sin(glfw.get_time() / 2.0)
         self.light.draw(projection, view)
         # glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
 
@@ -364,15 +397,21 @@ class Hanoi:
         self.shader.use()
         self.shader.setUniform("texture2", 1)
         self.shader.setUniform("texture1", 0)
-        self.shader.setUniform("objectColour", vec3(1.0, 0.5, 0.3))
-        self.shader.setUniform("lightColour", vec3(1.0, 1.0, 1.0))
-        self.shader.setUniform("lightPos", self.light.position)
+        self.shader.setUniform("lightColour", self.light.colour)
+        self.shader.setUniform("light.position", self.light.position)
+        self.shader.setUniform("material.ambient", vec3(1.0, 0.5, 0.31))
+        self.shader.setUniform("material.diffuse", vec3(1.0, 0.5, 0.31))
+        self.shader.setUniform("material.specular", vec3(0.5, 0.5, 0.5))
+        self.shader.setUniform("material.shininess", 32.0)
+        self.shader.setUniform("light.ambient", vec3(0.2))
+        self.shader.setUniform("light.diffuse", vec3(0.5))
+        self.shader.setUniform("light.specular", vec3(1.0))
         # For wireframe
         # glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
     def processInput(self):
         if (glfw.get_key(self.window._win, glfw.KEY_ESCAPE) == glfw.PRESS):
-            glfw.set_window_should_close(self._win, True)
+            glfw.set_window_should_close(self.window._win, True)
 
         if(glfw.get_key(self.window._win, glfw.KEY_W) == glfw.PRESS):
             self.camera.processKeyboard(CameraMovement.FORWARD, self.deltaTime)
