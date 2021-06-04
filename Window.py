@@ -4,7 +4,7 @@ from OpenGL.GL import *
 
 class Window:
 
-    def __init__(self, width: int = 1280, height: int = 720, title: str = "Window", render=None, initResources=None):
+    def __init__(self, width: int = 1280, height: int = 720, title: str = "Window", render=None, initResources=None, processInput=None):
         # imgui.create_context()
 
         # Initialise glfw library
@@ -40,6 +40,11 @@ class Window:
             self.render = self.defaultRender
 
         self.initResources = initResources
+
+        if processInput:
+            self.processInput = processInput
+        else:
+            self.processInput = self.processInput
         # Handle key presses with a callback MUST be run after renderer initialisation for some reason
         # glfw.set_key_callback(self._win, self.key_callback)
 

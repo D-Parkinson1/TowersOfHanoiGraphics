@@ -1,4 +1,5 @@
 
+from Camera import Camera, CameraMovement
 from LightSource import LightSource
 from Texture import Texture
 from ctypes import c_float, c_uint, c_void_p
@@ -10,7 +11,7 @@ import ObjModel as Obj
 
 from lab_utils import make_perspective, make_rotation_x, make_rotation_y, make_rotation_z, vec3, Mat4, make_lookAt, make_scale, make_translation
 
-import Shader as sha
+from Shader import Shader
 
 from Window import Window
 # import imgui
@@ -34,6 +35,7 @@ def drawCircle(numSegments: int, radius: int = 1):
         g_triangleVerts.append([x, y, 0])
         g_triangleVerts.append([x2, y2, 0])
     return g_triangleVerts
+
 
     # magic.drawVertexDataAsTriangles(g_triangleVerts)
 torus = None
@@ -209,13 +211,20 @@ class Hanoi:
     ]
 
     def __init__(self):
-        self.window = Window(800, 600, "Towers of Hanoi", render=self.render, initResources=self.initResources)
+        self.window = Window(800, 600, "Towers of Hanoi", render=self.render,
+                             initResources=self.initResources, processInput=self.processInput)
         self.light = LightSource(vec3(1.2, 1.0, 2.0))
+        self.camera = Camera(vec3(0, 0, 3))
+        self.deltaTime = 0
+        self.lastFrame = 0
 
     def start(self):
         self.window.main()
 
     def render(self, width, height):
+        currentFrame = glfw.get_time()
+        self.deltaTime = currentFrame - self.lastFrame
+        self.lastFrame = currentFrame
         # global g_torus
         glClearColor(0.2, 0.3, 0.1, 1.0)
         # Tell OpenGL to clear the render target to the clear values for both depth and colour buffers (depth uses the default)
@@ -233,10 +242,11 @@ class Hanoi:
         model = make_rotation_x(radians(angle)) * make_rotation_y(radians(2*angle))
         # view = make_translation(0, 0, -5)
 
-        radius = 10
-        camX = sin(glfw.get_time()) * radius
-        camZ = cos(glfw.get_time()) * radius
-        view = make_lookAt(vec3(camX, 0, camZ), vec3(0), vec3(0, 1, 0))
+        # radius = 10
+        # camX = radius  # sin(glfw.get_time()) * radius
+        # camZ = radius  # cos(glfw.get_time()) * radius
+        # camPos = vec3(camX, 0, camZ)
+        view = make_lookAt(self.camera.position, vec3(0), vec3(0, 1, 0))
         projection = make_perspective(45, width/height, 0.1, 100)
         self.shader.use()
         self.shader.setUniform("model", model)
@@ -245,6 +255,7 @@ class Hanoi:
         self.shader.setUniform("objectColour", vec3(1.0, 0.5, 0.3))
         self.shader.setUniform("lightColour", vec3(1.0, 1.0, 1.0))
         self.shader.setUniform("lightPos", self.light.position)
+        self.shader.setUniform("viewPos", self.camera.position)
         glBindVertexArray(self.vao)
 
         for i in range(10):
@@ -258,6 +269,8 @@ class Hanoi:
             glDrawArrays(GL_TRIANGLES, 0, 36)
 
         glDrawArrays(GL_TRIANGLES, 0, 36)
+        self.light.position[0] = 1.0 + sin(glfw.get_time()) * 2.0
+        self.light.position[1] = 1.0 + sin(glfw.get_time() / 2.0)
         self.light.draw(projection, view)
         # glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
 
@@ -273,7 +286,7 @@ class Hanoi:
         # numVerts = len(verts)
         # vertsArrayObj = gl.glGenVertexArrays(1)
         # createAndAddVertexArrayData(vertsArrayObj, verts, 0)
-        # shader = sha.Shader(vertexShader, fragmentShader, {
+        # shader = Shader(vertexShader, fragmentShader, {
         #     "positionIn": 0, "normalIn": 1})
         # gl.glUseProgram(shader.program)
         # gl.glBindVertexArray(vertsArrayObj)
@@ -289,9 +302,9 @@ class Hanoi:
         glClearColor(0.2, 0.3, 0.1, 1.0)
         # Tell OpenGL to clear the render target to the clear values for both depth and colour buffers (depth uses the default)
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT)
-        # shader = sha.Shader(vertFile='shaders/uniformVert.glsl', fragFile='shaders/uniformFrag.glsl')
-        self.shader = sha.Shader(vertFile='shaders/lightVert.glsl',
-                                 fragFile='shaders/lightFrag.glsl')
+        # shader = Shader(vertFile='shaders/uniformVert.glsl', fragFile='shaders/uniformFrag.glsl')
+        self.shader = Shader(vertFile='shaders/lightVert.glsl',
+                             fragFile='shaders/lightFrag.glsl')
 
         self.vao = glGenVertexArrays(1)
         self.vbo = glGenBuffers(1)
@@ -356,6 +369,19 @@ class Hanoi:
         self.shader.setUniform("lightPos", self.light.position)
         # For wireframe
         # glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+
+    def processInput(self):
+        if (glfw.get_key(self.window._win, glfw.KEY_ESCAPE) == glfw.PRESS):
+            glfw.set_window_should_close(self._win, True)
+
+        if(glfw.get_key(self.window._win, glfw.KEY_W) == glfw.PRESS):
+            self.camera.processKeyboard(CameraMovement.FORWARD, self.deltaTime)
+        if(glfw.get_key(self.window._win, glfw.KEY_S) == glfw.PRESS):
+            self.camera.processKeyboard(CameraMovement.BACKWARD, self.deltaTime)
+        if(glfw.get_key(self.window._win, glfw.KEY_A) == glfw.PRESS):
+            self.camera.processKeyboard(CameraMovement.LEFT, self.deltaTime)
+        if(glfw.get_key(self.window._win, glfw.KEY_D) == glfw.PRESS):
+            self.camera.processKeyboard(CameraMovement.RIGHT, self.deltaTime)
 
 
 if __name__ == "__main__":
