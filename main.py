@@ -35,7 +35,6 @@ def drawCircle(numSegments: int, radius: int = 1):
         g_triangleVerts.append([x2, y2, 0])
     return g_triangleVerts
 
-
     # magic.drawVertexDataAsTriangles(g_triangleVerts)
 torus = None
 
@@ -109,8 +108,50 @@ class Hanoi:
         0, 1, 3,
         1, 2, 3
     ]
+    cubeVertsNormal = [
+        -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+        0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+        0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+        0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+        -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+        -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
 
-    cubeVerts = [
+        -0.5, -0.5,  0.5,  0.0,  0.0, 1.0,
+        0.5, -0.5,  0.5,  0.0,  0.0, 1.0,
+        0.5,  0.5,  0.5,  0.0,  0.0, 1.0,
+        0.5,  0.5,  0.5,  0.0,  0.0, 1.0,
+        -0.5,  0.5,  0.5,  0.0,  0.0, 1.0,
+        -0.5, -0.5,  0.5,  0.0,  0.0, 1.0,
+
+        -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
+        -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,
+        -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
+        -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
+        -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,
+        -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
+
+        0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
+        0.5,  0.5, -0.5,  1.0,  0.0,  0.0,
+        0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
+        0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
+        0.5, -0.5,  0.5,  1.0,  0.0,  0.0,
+        0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
+
+        -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+        0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+        0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+        0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+        -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+        -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+
+        -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
+        0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
+        0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+        0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+        -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+        -0.5,  0.5, -0.5,  0.0,  1.0,  0.0
+    ]
+    cubeVertsTexture = [
         -0.5, -0.5, -0.5,  0.0, 0.0,
         0.5, -0.5, -0.5,  1.0, 0.0,
         0.5,  0.5, -0.5,  1.0, 1.0,
@@ -176,7 +217,9 @@ class Hanoi:
 
     def render(self, width, height):
         # global g_torus
-
+        glClearColor(0.2, 0.3, 0.1, 1.0)
+        # Tell OpenGL to clear the render target to the clear values for both depth and colour buffers (depth uses the default)
+        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT)
         self.texture1.bind()
         self.texture2.bind(texUnit=1)
 
@@ -199,6 +242,9 @@ class Hanoi:
         self.shader.setUniform("model", model)
         self.shader.setUniform("view", view)
         self.shader.setUniform("projection", projection)
+        self.shader.setUniform("objectColour", vec3(1.0, 0.5, 0.3))
+        self.shader.setUniform("lightColour", vec3(1.0, 1.0, 1.0))
+        self.shader.setUniform("lightPos", self.light.position)
         glBindVertexArray(self.vao)
 
         for i in range(10):
@@ -238,25 +284,7 @@ class Hanoi:
     def initResources(self):
         # global torus
         # torus = Obj.ObjModel("objects/torus.obj")
-        # vertexShader = """
-        # #version 330
-        # in vec3 positionIn;
 
-        # void main()
-        # {
-        #     gl_Position = vec4(positionIn, 1.0);
-        # }
-        # """
-
-        # fragmentShader = """
-        # #version 330
-        # out vec4 fragmentColor;
-
-        # void main()
-        # {
-        #     fragmentColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-        # }
-        # """
         # Set the colour we want the frame buffer cleared to,
         glClearColor(0.2, 0.3, 0.1, 1.0)
         # Tell OpenGL to clear the render target to the clear values for both depth and colour buffers (depth uses the default)
@@ -273,19 +301,23 @@ class Hanoi:
 
         ##############################CUBE START ##################################
         #######################################################################
-        cube_buffer = (c_float * len(self.cubeVerts))(*self.cubeVerts)
+        cube_buffer = (c_float * len(self.cubeVertsNormal))(*self.cubeVertsNormal)
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferData(GL_ARRAY_BUFFER, len(self.cubeVerts) * ctypes.sizeof(GLfloat), cube_buffer, GL_STATIC_DRAW)
+        glBufferData(GL_ARRAY_BUFFER, len(self.cubeVertsNormal) * ctypes.sizeof(GLfloat), cube_buffer, GL_STATIC_DRAW)
 
         # position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * ctypes.sizeof(GLfloat), c_void_p(0))
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * ctypes.sizeof(GLfloat), c_void_p(0))
         glEnableVertexAttribArray(0)
 
         # texture attribute
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * ctypes.sizeof(GLfloat),
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 6 * ctypes.sizeof(GLfloat),
                               c_void_p(3 * ctypes.sizeof(GLfloat)))
         glEnableVertexAttribArray(1)
 
+        # normal attribute
+        # glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * ctypes.sizeof(GLfloat),
+        #                       c_void_p(3 * ctypes.sizeof(GLfloat)))
+        # glEnableVertexAttribArray(1)
         ###################################
         ### END CUBE###########
         ##########################
@@ -321,7 +353,7 @@ class Hanoi:
         self.shader.setUniform("texture1", 0)
         self.shader.setUniform("objectColour", vec3(1.0, 0.5, 0.3))
         self.shader.setUniform("lightColour", vec3(1.0, 1.0, 1.0))
-
+        self.shader.setUniform("lightPos", self.light.position)
         # For wireframe
         # glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
