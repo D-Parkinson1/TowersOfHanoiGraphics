@@ -36,6 +36,7 @@ def drawCircle(numSegments: int, radius: int = 1):
         g_triangleVerts.append([x2, y2, 0])
     return g_triangleVerts
 
+
     # magic.drawVertexDataAsTriangles(g_triangleVerts)
 torus = None
 
@@ -97,6 +98,7 @@ class Hanoi:
     shader = None
     texture1 = None
     texture2 = None
+    texture3 = None
     light = None
     # coords, colours, texcoords
     vertices = [
@@ -109,91 +111,48 @@ class Hanoi:
         0, 1, 3,
         1, 2, 3
     ]
-    cubeVertsNormal = [
-        -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
-        0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
-        0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
-        0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
-        -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
-        -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+    cubeVertsTextureNormal = [
+        -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  0.0, 0.0,
+        0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  1.0, 0.0,
+        0.5,  0.5, -0.5,  0.0,  0.0, -1.0,  1.0, 1.0,
+        0.5,  0.5, -0.5,  0.0,  0.0, -1.0,  1.0, 1.0,
+        -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,  0.0, 1.0,
+        -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  0.0, 0.0,
 
-        -0.5, -0.5,  0.5,  0.0,  0.0, 1.0,
-        0.5, -0.5,  0.5,  0.0,  0.0, 1.0,
-        0.5,  0.5,  0.5,  0.0,  0.0, 1.0,
-        0.5,  0.5,  0.5,  0.0,  0.0, 1.0,
-        -0.5,  0.5,  0.5,  0.0,  0.0, 1.0,
-        -0.5, -0.5,  0.5,  0.0,  0.0, 1.0,
+        -0.5, -0.5,  0.5,  0.0,  0.0, 1.0,   0.0, 0.0,
+        0.5, -0.5,  0.5,  0.0,  0.0, 1.0,   1.0, 0.0,
+        0.5,  0.5,  0.5,  0.0,  0.0, 1.0,   1.0, 1.0,
+        0.5,  0.5,  0.5,  0.0,  0.0, 1.0,   1.0, 1.0,
+        -0.5,  0.5,  0.5,  0.0,  0.0, 1.0,   0.0, 1.0,
+        -0.5, -0.5,  0.5,  0.0,  0.0, 1.0,   0.0, 0.0,
 
-        -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
-        -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,
-        -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
-        -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
-        -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,
-        -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
+        -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,  1.0, 0.0,
+        -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,  1.0, 1.0,
+        -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,  0.0, 1.0,
+        -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,  0.0, 1.0,
+        -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,  0.0, 0.0,
+        -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,  1.0, 0.0,
 
-        0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
-        0.5,  0.5, -0.5,  1.0,  0.0,  0.0,
-        0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
-        0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
-        0.5, -0.5,  0.5,  1.0,  0.0,  0.0,
-        0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
+        0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0, 0.0,
+        0.5,  0.5, -0.5,  1.0,  0.0,  0.0,  1.0, 1.0,
+        0.5, -0.5, -0.5,  1.0,  0.0,  0.0,  0.0, 1.0,
+        0.5, -0.5, -0.5,  1.0,  0.0,  0.0,  0.0, 1.0,
+        0.5, -0.5,  0.5,  1.0,  0.0,  0.0,  0.0, 0.0,
+        0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0, 0.0,
 
-        -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
-        0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
-        0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
-        0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
-        -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
-        -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+        -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,  0.0, 1.0,
+        0.5, -0.5, -0.5,  0.0, -1.0,  0.0,  1.0, 1.0,
+        0.5, -0.5,  0.5,  0.0, -1.0,  0.0,  1.0, 0.0,
+        0.5, -0.5,  0.5,  0.0, -1.0,  0.0,  1.0, 0.0,
+        -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,  0.0, 0.0,
+        -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,  0.0, 1.0,
 
-        -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
-        0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
-        0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
-        0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
-        -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
-        -0.5,  0.5, -0.5,  0.0,  1.0,  0.0
-    ]
-    cubeVertsTexture = [
-        -0.5, -0.5, -0.5,  0.0, 0.0,
-        0.5, -0.5, -0.5,  1.0, 0.0,
-        0.5,  0.5, -0.5,  1.0, 1.0,
-        0.5,  0.5, -0.5,  1.0, 1.0,
-        -0.5,  0.5, -0.5,  0.0, 1.0,
-        -0.5, -0.5, -0.5,  0.0, 0.0,
-
-        -0.5, -0.5,  0.5,  0.0, 0.0,
-        0.5, -0.5,  0.5,  1.0, 0.0,
-        0.5,  0.5,  0.5,  1.0, 1.0,
-        0.5,  0.5,  0.5,  1.0, 1.0,
-        -0.5,  0.5,  0.5,  0.0, 1.0,
-        -0.5, -0.5,  0.5,  0.0, 0.0,
-
-        -0.5,  0.5,  0.5,  1.0, 0.0,
-        -0.5,  0.5, -0.5,  1.0, 1.0,
-        -0.5, -0.5, -0.5,  0.0, 1.0,
-        -0.5, -0.5, -0.5,  0.0, 1.0,
-        -0.5, -0.5,  0.5,  0.0, 0.0,
-        -0.5,  0.5,  0.5,  1.0, 0.0,
-
-        0.5,  0.5,  0.5,  1.0, 0.0,
-        0.5,  0.5, -0.5,  1.0, 1.0,
-        0.5, -0.5, -0.5,  0.0, 1.0,
-        0.5, -0.5, -0.5,  0.0, 1.0,
-        0.5, -0.5,  0.5,  0.0, 0.0,
-        0.5,  0.5,  0.5,  1.0, 0.0,
-
-        -0.5, -0.5, -0.5,  0.0, 1.0,
-        0.5, -0.5, -0.5,  1.0, 1.0,
-        0.5, -0.5,  0.5,  1.0, 0.0,
-        0.5, -0.5,  0.5,  1.0, 0.0,
-        -0.5, -0.5,  0.5,  0.0, 0.0,
-        -0.5, -0.5, -0.5,  0.0, 1.0,
-
-        -0.5,  0.5, -0.5,  0.0, 1.0,
-        0.5,  0.5, -0.5,  1.0, 1.0,
-        0.5,  0.5,  0.5,  1.0, 0.0,
-        0.5,  0.5,  0.5,  1.0, 0.0,
-        -0.5,  0.5,  0.5,  0.0, 0.0,
-        -0.5,  0.5, -0.5,  0.0, 1.0
+        -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  0.0, 1.0,
+        0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  1.0, 1.0,
+        0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0, 0.0,
+        0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0, 0.0,
+        -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  0.0, 0.0,
+        -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  0.0, 1.0
     ]
 
     cubePositions = [
@@ -232,7 +191,6 @@ class Hanoi:
         self.camera = Camera(vec3(0, 0, 3))
 
     def mouseCallback(self, window, xPos, yPos):
-        print("MOUSE CALLBACK")
         if (self.firstMouse):
             self.lastX = xPos
             self.lastY = yPos
@@ -261,6 +219,7 @@ class Hanoi:
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT)
         self.texture1.bind()
         self.texture2.bind(texUnit=1)
+        self.texture3.bind(texUnit=2)
 
         # shader.use()
         # scale = make_scale(0.5)
@@ -344,26 +303,27 @@ class Hanoi:
         # ebo = glGenBuffers(1)
 
         glBindVertexArray(self.vao)
-
         ##############################CUBE START ##################################
         #######################################################################
-        cube_buffer = (c_float * len(self.cubeVertsNormal))(*self.cubeVertsNormal)
+        cube_buffer = (c_float * len(self.cubeVertsTextureNormal))(*self.cubeVertsTextureNormal)
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferData(GL_ARRAY_BUFFER, len(self.cubeVertsNormal) * ctypes.sizeof(GLfloat), cube_buffer, GL_STATIC_DRAW)
+        glBufferData(GL_ARRAY_BUFFER, len(self.cubeVertsTextureNormal) *
+                     ctypes.sizeof(GLfloat), cube_buffer, GL_STATIC_DRAW)
 
         # position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * ctypes.sizeof(GLfloat), c_void_p(0))
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), c_void_p(0))
         glEnableVertexAttribArray(0)
 
-        # texture attribute
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 6 * ctypes.sizeof(GLfloat),
+        # normal attribute
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat),
                               c_void_p(3 * ctypes.sizeof(GLfloat)))
         glEnableVertexAttribArray(1)
 
-        # normal attribute
-        # glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * ctypes.sizeof(GLfloat),
-        #                       c_void_p(3 * ctypes.sizeof(GLfloat)))
-        # glEnableVertexAttribArray(1)
+        # texture attribute
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat),
+                              c_void_p(6 * ctypes.sizeof(GLfloat)))
+        glEnableVertexAttribArray(2)
+
         ###################################
         ### END CUBE###########
         ##########################
@@ -388,20 +348,20 @@ class Hanoi:
         # glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), c_void_p(6 * ctypes.sizeof(GLfloat)))
         # glEnableVertexAttribArray(2)
 
-        self.texture1 = Texture('textures/container.jpg')
-        self.texture2 = Texture('textures/awesomeface.png')
+        self.texture1 = Texture('textures/container2.png')
+        self.texture2 = Texture('textures/container2_specular.png')
+        self.texture3 = Texture('textures/matrix.jpg')
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 
         self.shader.use()
-        self.shader.setUniform("texture2", 1)
-        self.shader.setUniform("texture1", 0)
         self.shader.setUniform("lightColour", self.light.colour)
         self.shader.setUniform("light.position", self.light.position)
         self.shader.setUniform("material.ambient", vec3(1.0, 0.5, 0.31))
-        self.shader.setUniform("material.diffuse", vec3(1.0, 0.5, 0.31))
-        self.shader.setUniform("material.specular", vec3(0.5, 0.5, 0.5))
+        self.shader.setUniform("material.diffuse", 0)
+        self.shader.setUniform("material.specular", 1)
+        self.shader.setUniform("material.emission", 2)
         self.shader.setUniform("material.shininess", 32.0)
         self.shader.setUniform("light.ambient", vec3(0.2))
         self.shader.setUniform("light.diffuse", vec3(0.5))
