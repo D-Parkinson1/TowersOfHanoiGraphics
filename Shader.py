@@ -63,6 +63,8 @@ class Shader:
         glUseProgram(self.program)
 
     def setUniform(self, uniformName, value):
+        # Make sure this shader is in use before setting uniforms
+        self.use()
         loc = glGetUniformLocation(self.program, uniformName)
         if isinstance(value, float):
             glUniform1f(loc, value)

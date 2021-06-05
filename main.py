@@ -100,6 +100,7 @@ class Hanoi:
     texture2 = None
     texture3 = None
     light = None
+    pointLights = []
     # coords, colours, texcoords
     vertices = [
         0.5,  0.5, 0.0,  1.0, 0.0, 0.0,  1.0, 1.0,
@@ -187,7 +188,9 @@ class Hanoi:
         self.deltaTime = 0
         self.lastFrame = 0
 
-        self.light = LightSource(vec3(1.2, 1.0, 2.0))
+        # self.light = LightSource(vec3(1.2, 1.0, 2.0))
+        for i in range(0, 4):
+            self.pointLights.append(LightSource(vec3(0.7*i, -0.3 + i, i)))
         self.camera = Camera(vec3(0, 0, 3))
 
     def mouseCallback(self, window, xPos, yPos):
@@ -217,6 +220,7 @@ class Hanoi:
         glClearColor(0.2, 0.3, 0.1, 1.0)
         # Tell OpenGL to clear the render target to the clear values for both depth and colour buffers (depth uses the default)
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT)
+        # Bind textures
         self.texture1.bind()
         self.texture2.bind(texUnit=1)
         self.texture3.bind(texUnit=2)
@@ -227,43 +231,79 @@ class Hanoi:
         # rotate = make_rotation_z(glfw.get_time())
         # tfm = rotate * translate * scale
         # shader.setUniform("transform", scale)
-        angle = glfw.get_time() * 25
-        model = make_rotation_x(radians(angle)) * make_rotation_y(radians(2*angle))
+
         # view = make_translation(0, 0, -5)
 
         # radius = 10
         # camX = radius  # sin(glfw.get_time()) * radius
         # camZ = radius  # cos(glfw.get_time()) * radius
         # camPos = vec3(camX, 0, camZ)
-        view = make_lookAt(self.camera.position, vec3(0), vec3(0, 1, 0))
-        projection = make_perspective(45, width/height, 0.1, 100)
 
-        self.light.shader.use()
-        lightColour = vec3(sin(glfw.get_time() * 2.0), sin(glfw.get_time() * 0.7), sin(glfw.get_time() * 1.3))
-        self.light.colour = lightColour
-        self.light.shader.setUniform("lightColour", lightColour)
+        # angle = glfw.get_time() * 25
+
+        # self.light.shader.use()
+        # lightColour = vec3(sin(glfw.get_time() * 2.0), sin(glfw.get_time() * 0.7), sin(glfw.get_time() * 1.3))
+        # self.light.colour = lightColour
+        # self.light.shader.setUniform("lightColour", lightColour)
+
+        # Calculate transformation matrices
+        model = Mat4()  # make_rotation_x(radians(angle)) * make_rotation_y(radians(2*angle))
+        view = self.camera.getViewMatrix()  # make_lookAt(self.camera.position, vec3(0), vec3(0, 1, 0))
+        projection = make_perspective(self.camera.zoom, width/height, 0.1, 100)
 
         self.shader.use()
         self.shader.setUniform("model", model)
         self.shader.setUniform("view", view)
         self.shader.setUniform("projection", projection)
-        self.shader.setUniform("lightColour", self.light.colour)
-        self.shader.setUniform("light.position", self.light.position)
         self.shader.setUniform("viewPos", self.camera.position)
+        self.shader.setUniform("material.shininess", 32.0)
+
+        # Directional light
+        self.shader.setUniform("dirLight.direction", vec3(-0.2, -1.0, -0.3))
+        self.shader.setUniform("dirLight.ambient", vec3(0.05))
+        self.shader.setUniform("dirLight.diffuse", vec3(0.4))
+        self.shader.setUniform("dirLight.specular", vec3(0.5))
+        # Point lights
+        for i in range(len(self.pointLights)):
+            light = self.pointLights[i]
+            # light.shader.setUniform("lightColour", vec3(0.0, 1.0, 0.5))
+            self.shader.setUniform("pointLights[%s].position" % i, light.position)
+            self.shader.setUniform("pointLights[%s].ambient" % i, vec3(0.05))
+            self.shader.setUniform("pointLights[%s].diffuse" % i, vec3(0.8))
+            self.shader.setUniform("pointLights[%s].specular" % i, vec3(1.0))
+            self.shader.setUniform("pointLights[%s].constant" % i, 1.0)
+            self.shader.setUniform("pointLights[%s].linear" % i, 0.09)
+            self.shader.setUniform("pointLights[%s].quadratic" % i, 0.032)
+
+            light.draw(projection, view)
+
+        # Spotlight
+        self.shader.setUniform("spotLight.position", self.camera.position)
+        self.shader.setUniform("spotLight.direction", self.camera.front)
+        self.shader.setUniform("spotLight.ambient", vec3(0.0))
+        self.shader.setUniform("spotLight.diffuse", vec3(1.0))
+        self.shader.setUniform("spotLight.specular", vec3(1.0))
+        self.shader.setUniform("spotLight.constant", 1.0)
+        self.shader.setUniform("spotLight.linear", 0.09)
+        self.shader.setUniform("spotLight.quadratic", 0.032)
+        self.shader.setUniform("spotLight.cutOff", cos(radians(12.5)))
+        self.shader.setUniform("spotLight.outerCutOff", cos(radians(15.0)))
+
         glBindVertexArray(self.vao)
 
-        # for i in range(10):
-        #     model = make_translation(*self.cubePositions[i])
-        #     angle = 20.0 * i
-        #     model *= make_rotation_x(radians(angle)) * make_rotation_y(radians(0.3*angle))
-        #     if i % 3 == 0:
-        #         model *= make_rotation_z(radians(angle*glfw.get_time()))
-        #     self.shader.setUniform("model", model)
+        for i in range(10):
+            model = make_translation(*self.cubePositions[i])
+            angle = 20.0 * i
+            model *= make_rotation_x(radians(angle)) * make_rotation_y(radians(0.3*angle))
+            if i % 3 == 0:
+                model *= make_rotation_z(radians(angle*glfw.get_time()))
+            self.shader.setUniform("model", model)
 
-        #     glDrawArrays(GL_TRIANGLES, 0, 36)
+            glDrawArrays(GL_TRIANGLES, 0, 36)
 
         glDrawArrays(GL_TRIANGLES, 0, 36)
-        self.light.draw(projection, view)
+
+        # self.light.draw(projection, view)
         # glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
 
         # shader.use()
@@ -356,16 +396,16 @@ class Hanoi:
         glBindVertexArray(0)
 
         self.shader.use()
-        self.shader.setUniform("lightColour", self.light.colour)
-        self.shader.setUniform("light.position", self.light.position)
-        self.shader.setUniform("material.ambient", vec3(1.0, 0.5, 0.31))
+        # self.shader.setUniform("lightColour", self.light.colour)
+        # self.shader.setUniform("light.position", self.light.position)
+        # self.shader.setUniform("material.ambient", vec3(1.0, 0.5, 0.31))
         self.shader.setUniform("material.diffuse", 0)
         self.shader.setUniform("material.specular", 1)
-        self.shader.setUniform("material.emission", 2)
-        self.shader.setUniform("material.shininess", 32.0)
-        self.shader.setUniform("light.ambient", vec3(0.2))
-        self.shader.setUniform("light.diffuse", vec3(0.5))
-        self.shader.setUniform("light.specular", vec3(1.0))
+        # self.shader.setUniform("material.emission", 2)
+        # self.shader.setUniform("material.shininess", 32.0)
+        # self.shader.setUniform("light.ambient", vec3(0.2))
+        # self.shader.setUniform("light.diffuse", vec3(0.5))
+        # self.shader.setUniform("light.specular", vec3(1.0))
         # For wireframe
         # glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
