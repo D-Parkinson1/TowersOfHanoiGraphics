@@ -189,8 +189,10 @@ class Hanoi:
         self.lastFrame = 0
 
         # self.light = LightSource(vec3(1.2, 1.0, 2.0))
-        for i in range(0, 4):
-            self.pointLights.append(LightSource(vec3(0.7*i, -0.3 + i, i)))
+        self.pointLights.append(LightSource(vec3(1.0, 0.5, 3.0), None, vec3(0.83, 0.98, 1.0)))
+        self.pointLights.append(LightSource(vec3(0.0, 1.0, 0.0), None, vec3(0.25, 0.25, 1.0)))
+        self.pointLights.append(LightSource(vec3(-3.0, -2, 3.0), None, vec3(1.0, 0.3, 0.11)))
+        self.pointLights.append(LightSource(vec3(2.0, 3, -3.0), None, vec3(0.25, 1.0, 0.11)))
         self.camera = Camera(vec3(0, 0, 3))
 
     def mouseCallback(self, window, xPos, yPos):
@@ -268,9 +270,9 @@ class Hanoi:
             light = self.pointLights[i]
             # light.shader.setUniform("lightColour", vec3(0.0, 1.0, 0.5))
             self.shader.setUniform("pointLights[%s].position" % i, light.position)
-            self.shader.setUniform("pointLights[%s].ambient" % i, vec3(0.05))
-            self.shader.setUniform("pointLights[%s].diffuse" % i, vec3(0.8))
-            self.shader.setUniform("pointLights[%s].specular" % i, vec3(1.0))
+            self.shader.setUniform("pointLights[%s].ambient" % i, vec3(0.05)*light.colour)
+            self.shader.setUniform("pointLights[%s].diffuse" % i, vec3(0.8)*light.colour)
+            self.shader.setUniform("pointLights[%s].specular" % i, vec3(1.0)*light.colour)
             self.shader.setUniform("pointLights[%s].constant" % i, 1.0)
             self.shader.setUniform("pointLights[%s].linear" % i, 0.09)
             self.shader.setUniform("pointLights[%s].quadratic" % i, 0.032)
