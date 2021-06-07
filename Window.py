@@ -80,7 +80,7 @@ class Window:
             # imgui.begin("Debug window", True)
             # imgui.text("Test text")
             # imgui.end()
-
+            glClearColor(0.529, 0.808, .922, 1)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             self.render(width, height)
             # imgui.render()

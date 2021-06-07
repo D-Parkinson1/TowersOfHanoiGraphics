@@ -193,7 +193,7 @@ class Hanoi:
         self.deltaTime = currentFrame - self.lastFrame
         self.lastFrame = currentFrame
         # global g_torus
-        glClearColor(0.2, 0.3, 0.1, 1.0)
+        glClearColor(0.529, 0.808, .922, 1)
         # Tell OpenGL to clear the render target to the clear values for both depth and colour buffers (depth uses the default)
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT)
         # Bind textures
@@ -267,7 +267,7 @@ class Hanoi:
 
         glBindVertexArray(self.vao)
 
-        self.torus.render(self.shader.program)
+        self.torus.render()
         # for i in range(10):
         #     model = make_translation(*self.cubePositions[i])
         #     angle = 20.0 * i
@@ -310,7 +310,7 @@ class Hanoi:
         # torus = Obj.ObjModel("objects/torus.obj")
 
         # Set the colour we want the frame buffer cleared to,
-        glClearColor(0.2, 0.3, 0.1, 1.0)
+        glClearColor(0.529, 0.808, .922, 1)
         # Tell OpenGL to clear the render target to the clear values for both depth and colour buffers (depth uses the default)
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT)
         # shader = Shader(vertFile='shaders/uniformVert.glsl', fragFile='shaders/uniformFrag.glsl')
@@ -371,7 +371,7 @@ class Hanoi:
         self.texture2 = Texture('textures/container2_specular.png')
         self.texture3 = Texture('textures/matrix.jpg')
         # self.mesh = Mesh(self.cubeVertsTextureNormal, self.indices, [self.texture1, self.texture2], self.shader)
-        self.torus = Obj.ObjModel('objects/torus.obj')
+        self.torus = Obj.ObjModel('objects/torus.obj', self.shader)
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
