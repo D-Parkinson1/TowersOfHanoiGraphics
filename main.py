@@ -3,43 +3,17 @@ import glfw
 from Camera import Camera, CameraMovement
 from LightSource import LightSource
 from Texture import Texture
-from ctypes import c_float, c_uint, c_void_p
+from ctypes import c_float, c_void_p
 from OpenGL.GL import *
-from PIL import Image
-
 import ObjModel as Obj
 
 from lab_utils import make_perspective, make_rotation_x, make_rotation_y, make_rotation_z, vec3, Mat4, make_lookAt, make_scale, make_translation
 
 from Shader import Shader
-
 from Window import Window
 # import imgui
 # from imgui.integrations.glfw import GlfwRenderer
-
-import numpy as np
 from math import radians, sin, cos, pi
-
-
-def drawCircle(numSegments: int, radius: int = 1):
-    g_triangleVerts = []
-    for i in range(numSegments):
-        theta = 2 * pi * i / (numSegments)
-        theta_next = 2 * pi * (i+1) / (numSegments)
-        x = radius * cos(theta)
-        y = radius * sin(theta)
-        x2 = radius * cos(theta_next)
-        y2 = radius * sin(theta_next)
-
-        g_triangleVerts.append([0, 0, 0])
-        g_triangleVerts.append([x, y, 0])
-        g_triangleVerts.append([x2, y2, 0])
-    return g_triangleVerts
-
-
-    # magic.drawVertexDataAsTriangles(g_triangleVerts)
-torus = None
-
 
 # def drawObjModel(viewToClipTfm, worldToViewTfm, modelToWorldTfm, model):
 #     # Lighting/Shading is very often done in view space, which is why a transformation that lands positions in this space is needed
@@ -293,17 +267,20 @@ class Hanoi:
 
         glBindVertexArray(self.vao)
 
-        for i in range(10):
-            model = make_translation(*self.cubePositions[i])
-            angle = 20.0 * i
-            model *= make_rotation_x(radians(angle)) * make_rotation_y(radians(0.3*angle))
-            if i % 3 == 0:
-                model *= make_rotation_z(radians(angle*glfw.get_time()))
-            self.shader.setUniform("model", model)
+        self.torus.render(self.shader.program)
+        # for i in range(10):
+        #     model = make_translation(*self.cubePositions[i])
+        #     angle = 20.0 * i
+        #     model *= make_rotation_x(radians(angle)) * make_rotation_y(radians(0.3*angle))
+        #     if i % 3 == 0:
+        #         model *= make_rotation_z(radians(angle*glfw.get_time()))
+        #     self.shader.setUniform("model", model)
 
-            glDrawArrays(GL_TRIANGLES, 0, 36)
+        #     glDrawArrays(GL_TRIANGLES, 0, 36)
 
-        glDrawArrays(GL_TRIANGLES, 0, 36)
+        # glDrawArrays(GL_TRIANGLES, 0, 36)
+
+        # self.mesh.draw()
 
         # self.light.draw(projection, view)
         # glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
@@ -393,6 +370,8 @@ class Hanoi:
         self.texture1 = Texture('textures/container2.png')
         self.texture2 = Texture('textures/container2_specular.png')
         self.texture3 = Texture('textures/matrix.jpg')
+        # self.mesh = Mesh(self.cubeVertsTextureNormal, self.indices, [self.texture1, self.texture2], self.shader)
+        self.torus = Obj.ObjModel('objects/torus.obj')
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
