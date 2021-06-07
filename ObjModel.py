@@ -50,7 +50,7 @@ class ObjModel:
         if shader:
             self.shader = shader
         else:
-            self.shader = Shader()
+            self.shader = Shader(vertFile="shaders/objVert.glsl", fragFile='shaders/objFrag.glsl')
 
     def load(self, fileName):
         basePath, _ = os.path.split(fileName)
@@ -142,6 +142,7 @@ class ObjModel:
             glEnableVertexAttribArray(attribLoc)
             return bufId
 
+        # 3 pos, 3 norm, 2 tex, 3 tangent, 3 bitangent
         self.positionBuffer = createBindVertexAttribArrayFloat(self.positions, self.AA_Position)
         self.normalBuffer = createBindVertexAttribArrayFloat(self.normals, self.AA_Normal)
         self.uvBuffer = createBindVertexAttribArrayFloat(self.uvs, self.AA_TexCoord)
@@ -268,7 +269,6 @@ class ObjModel:
 
             self.texturesByName[fileName.lower()] = texture
             self.texturesById[texId] = fileName.lower()
-            print(fileName, texture)
             return texture
         except Exception as e:
             print("WARNING: FAILED to load texture '%s'" % fileName)
@@ -376,89 +376,3 @@ class ObjModel:
         glUniform1i(magic.getUniformLocationDebug(shaderProgram, "specular_texture"), ObjModel.TU_Specular)
         glUniform1i(magic.getUniformLocationDebug(shaderProgram, "normal_texture"), ObjModel.TU_Normal)
         #glUniformBlockBinding(shaderProgram, glGetUniformBlockIndex(shaderProgram, "MaterialProperties"), UBS_MaterialProperties);
-
-    defaultVertexShader = """
-#version 330
-
-in vec3 positionAttribute;
-in vec3	normalAttribute;
-in vec2	texCoordAttribute;
-
-uniform mat4 modelToClipTransform;
-uniform mat4 modelToViewTransform;
-uniform mat3 modelToViewNormalTransform;
-
-// Out variables decalred in a vertex shader can be accessed in the subsequent stages.
-// For a pixel shader the variable is interpolated (the type of interpolation can be modified, try placing 'flat' in front, and also in the fragment shader!).
-out VertexData
-{
-	vec3 v2f_viewSpaceNormal;
-	vec2 v2f_texCoord;
-};
-
-void main() 
-{
-	// gl_Position is a buit in out variable that gets passed on to the clipping and rasterization stages.
-  // it must be written in order to produce any drawn geometry. 
-  // We transform the position using one matrix multiply from model to clip space, note the added 1 at the end of the position.
-	gl_Position = modelToClipTransform * vec4(positionAttribute, 1.0);
-	// We transform the normal to view space using the normal transform (which is the inverse-transpose of the rotation part of the modelToViewTransform)
-  // Just using the rotation is only valid if the matrix contains only rotation and uniform scaling.
-	v2f_viewSpaceNormal = normalize(modelToViewNormalTransform * normalAttribute);
-	// The texture coordinate is just passed through
-	v2f_texCoord = texCoordAttribute;
-}
-"""
-
-    defaultFragmentShader = """
-#version 330
-
-// Input from the vertex shader, will contain the interpolated (i.e., distance weighted average) vaule out put for each of the three vertex shaders that 
-// produced the vertex data for the triangle this fragmet is part of.
-in VertexData
-{
-	vec3 v2f_viewSpaceNormal;
-	vec2 v2f_texCoord;
-};
-
-// Material properties uniform buffer, required by OBJModel.
-// 'MaterialProperties' must be bound to a uniform buffer, OBJModel::setDefaultUniformBindings is of help!
-//layout(std140) uniform MaterialProperties
-//{
-uniform vec3 material_diffuse_color; 
-uniform float material_alpha;
-uniform vec3 material_specular_color; 
-uniform vec3 material_emissive_color; 
-uniform float material_specular_exponent;
-//};
-// Textures set by OBJModel (names must be bound to the right texture unit, OBJModel::setDefaultUniformBindings helps with that.
-uniform sampler2D diffuse_texture;
-uniform sampler2D opacity_texture;
-uniform sampler2D specular_texture;
-uniform sampler2D normal_texture;
-
-// Other uniforms used by the shader
-uniform vec3 viewSpaceLightDirection;
-
-out vec4 fragmentColor;
-
-// If we do not convert the colour to srgb before writing it out it looks terrible! All our lighting is done in linear space
-// (which it should be!), and the frame buffer is srgb by default. So we must convert, or somehow create a linear frame buffer...
-vec3 toSrgb(vec3 color)
-{
-  return pow(color, vec3(1.0 / 2.2));
-}
-
-void main() 
-{
-	// Manual alpha test (note: alpha test is no longer part of Opengl 3.3).
-	if (texture(opacity_texture, v2f_texCoord).r < 0.5)
-	{
-		discard;
-	}
-
-	vec3 materialDiffuse = texture(diffuse_texture, v2f_texCoord).xyz * material_diffuse_color;
-	vec3 color = materialDiffuse * (0.1 + 0.9 * max(0.0, dot(v2f_viewSpaceNormal, -viewSpaceLightDirection))) + material_emissive_color;
-	fragmentColor = vec4(toSrgb(color), material_alpha);
-}
-"""
