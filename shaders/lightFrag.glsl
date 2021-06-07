@@ -39,7 +39,9 @@ struct SpotLight {
     vec3 direction;
     float cutOff;
     float outerCutOff;
-  
+    
+    int on;
+    
     float constant;
     float linear;
     float quadratic;
@@ -69,9 +71,9 @@ void main() {
     vec3 result = calcDirLight(dirLight, norm, viewDir);
 
     // Point Lights
-    for(int i = 0; i < NR_POINT_LIGHTS; i++) {
-        result += calcPointLight(pointLights[i], norm, FragPos, viewDir);
-    }
+   // for(int i = 0; i < NR_POINT_LIGHTS; i++) {
+   //     result += calcPointLight(pointLights[i], norm, FragPos, viewDir);
+   // }
     result += calcSpotLight(spotLight, norm, FragPos, viewDir);
 
     FragColour = vec4(result, 1.0);
@@ -107,7 +109,7 @@ vec3 calcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
     ambient  *= attenuation;
     diffuse  *= attenuation;
     specular *= attenuation;
-    return ambient + diffuse + specular;
+    return (ambient + diffuse + specular);
 } 
 
 // calculates the color when using a spot light.
@@ -133,5 +135,5 @@ vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
     ambient *= attenuation * intensity;
     diffuse *= attenuation * intensity;
     specular *= attenuation * intensity;
-    return (ambient + diffuse + specular);
+    return (ambient + diffuse + specular) * light.on;
 }
