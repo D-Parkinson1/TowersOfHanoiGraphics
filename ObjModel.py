@@ -1,8 +1,9 @@
+from Texture import Texture
 from Shader import Shader
 from OpenGL.GL import *
 import os
 from PIL import Image
-from ctypes import sizeof, c_float, c_void_p, c_uint, string_at
+from ctypes import sizeof, c_float
 import magic
 import lab_utils as lu
 import numpy as np
@@ -12,9 +13,9 @@ def flatten(*lll):
     return [u for ll in lll for l in ll for u in l]
 
 
-def bindTexture(texUnit, textureId, defaultTexture):
+def bindTexture(texUnit, texture, defaultTexture):
     glActiveTexture(GL_TEXTURE0 + texUnit)
-    glBindTexture(GL_TEXTURE_2D, textureId if textureId != -1 else defaultTexture)
+    glBindTexture(GL_TEXTURE_2D, texture.id if texture != -1 else defaultTexture.id)
 
 
 class ObjModel:
@@ -38,25 +39,18 @@ class ObjModel:
     texturesByName = {}
     texturesById = {}
 
-    def __init__(self, fileName):
+    def __init__(self, fileName, shader=None):
         # Create default textures
-        self.defaultTextureOne = glGenTextures(1)
-        glBindTexture(GL_TEXTURE_2D, self.defaultTextureOne)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_FLOAT, [1.0, 1.0, 1.0, 1.0])
-
-        self.defaultNormalTexture = glGenTextures(1)
-        glBindTexture(GL_TEXTURE_2D, self.defaultNormalTexture)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1, 1, 0, GL_RGBA, GL_FLOAT, [0.5, 0.5, 0.5, 1.0])
-        glBindTexture(GL_TEXTURE_2D, 0)
+        self.defaultTextureOne = Texture()
+        self.defaultNormalTexture = Texture(mapType="normal")
 
         self.overrideDiffuseTextureWithDefault = False
         self.load(fileName)
 
-        # self.defaultShader = lu.buildShader(self.defaultVertexShader, self.defaultFragmentShader, ObjModel.getDefaultAttributeBindings())
-        # glUseProgram(self.defaultShader)
-        # ObjModel.setDefaultUniformBindings(self.defaultShader)
-        # glUseProgram(0)
-        self.defaultShader = Shader().program
+        if shader:
+            self.shader = shader
+        else:
+            self.shader = Shader()
 
     def load(self, fileName):
         basePath, _ = os.path.split(fileName)
@@ -213,6 +207,9 @@ class ObjModel:
                         materials[currentMaterial]["color"]["ambient"] = self.parseFloats(tokens[1:], 3)
                     elif tokens[0] == "Ns":
                         materials[currentMaterial]["specularExponent"] = float(tokens[1])
+                    # elif tokens[0] == "Ni":
+                    #     #Optical density - NOT USED ATM
+                    #     materials[currentMaterial]["specularExponent"] = float(tokens[1])
                     elif tokens[0] == "Kd":
                         materials[currentMaterial]["color"]["diffuse"] = self.parseFloats(tokens[1:], 3)
                     elif tokens[0] == "Ks":
@@ -245,38 +242,37 @@ class ObjModel:
 
     def loadTexture(self, fileName, basePath, srgb):
         fullFileName = os.path.join(basePath, fileName)
-
-        width = 0
-        height = 0
-        channels = 0
         try:
-            im = Image.open(fullFileName)
-            texId = glGenTextures(1)
-            glActiveTexture(GL_TEXTURE0)
-            glBindTexture(GL_TEXTURE_2D, texId)
+            texture = Texture(fullFileName, srgb=srgb)
+            texId = texture.id
+            # im = Image.open(fullFileName)
+            # texId = glGenTextures(1)
+            # glActiveTexture(GL_TEXTURE0)
+            # glBindTexture(GL_TEXTURE_2D, texId)
 
-            # NOTE: srgb is used to store pretty much all texture image data (except HDR images, which we don't support)
-            # Thus we use the GL_SRGB_ALPHA to ensure they are correctly converted to linear space when loaded into the shader.
-            # However: normal/bump maps/alpha masks, are typically authored in linear space, and so should not be stored as SRGB texture format.
-            data = im.tobytes("raw", "RGBX" if im.mode == 'RGB' else "RGBA", 0, -1)
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA if srgb else GL_RGBA,
-                         im.size[0], im.size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
-            #print("    Loaded texture '%s' (%d x %d)"%(fileName, im.size[0], im.size[1]));
-            glGenerateMipmap(GL_TEXTURE_2D)
+            # # NOTE: srgb is used to store pretty much all texture image data (except HDR images, which we don't support)
+            # # Thus we use the GL_SRGB_ALPHA to ensure they are correctly converted to linear space when loaded into the shader.
+            # # However: normal/bump maps/alpha masks, are typically authored in linear space, and so should not be stored as SRGB texture format.
+            # data = im.tobytes("raw", "RGBX" if im.mode == 'RGB' else "RGBA", 0, -1)
+            # glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA if srgb else GL_RGBA,
+            #              im.size[0], im.size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
+            # #print("    Loaded texture '%s' (%d x %d)"%(fileName, im.size[0], im.size[1]));
+            # glGenerateMipmap(GL_TEXTURE_2D)
 
-            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-            #glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16);
-            glBindTexture(GL_TEXTURE_2D, 0)
+            # glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+            # glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
+            # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+            # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+            # #glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16);
+            # glBindTexture(GL_TEXTURE_2D, 0)
 
-            self.texturesByName[fileName.lower()] = (im.size[0], im.size[1], texId)
-            self.texturesById[texId] = (im.size[0], im.size[1], fileName.lower())
-            return texId
-        except:
+            self.texturesByName[fileName.lower()] = texture
+            self.texturesById[texId] = fileName.lower()
+            print(fileName, texture)
+            return texture
+        except Exception as e:
             print("WARNING: FAILED to load texture '%s'" % fileName)
-            #print("Could not load image :(")
+            print(e)
 
         return -1
 
@@ -293,18 +289,19 @@ class ObjModel:
             newChunks.append((material, chunkOffset, chunkCount, renderFlags))
         self.chunks = newChunks
 
-    def render(self, shaderProgram=None, renderFlags=None, transforms={}):
+    def render(self, renderFlags=None, transforms={}):
         if not renderFlags:
             renderFlags = self.RF_All
 
-        if not shaderProgram:
-            shaderProgram = self.defaultShader
+        # if not shaderProgram:
+        #     shaderProgram = self.defaultShader
 
         # Filter chunks based of render flags
         chunks = [ch for ch in self.chunks if ch[3] & renderFlags]
 
         glBindVertexArray(self.vertexArrayObject)
-        glUseProgram(shaderProgram)
+        # glUseProgram(shaderProgram)
+        self.shader.use()
 
         # define defaults (identity)
         defaultTfms = {
@@ -316,8 +313,9 @@ class ObjModel:
         defaultTfms.update(transforms)
         # upload map of transforms
         for tfmName, tfm in defaultTfms.items():
-            loc = magic.getUniformLocationDebug(shaderProgram, tfmName)
-            tfm._set_open_gl_uniform(loc)
+            # loc = magic.getUniformLocationDebug(shaderProgram, tfmName)
+            # tfm._set_open_gl_uniform(loc)
+            self.shader.setUniform(tfmName, tfm)
 
         previousMaterial = None
         for material, chunkOffset, chunkCount, renderFlags in chunks:
@@ -337,10 +335,13 @@ class ObjModel:
                 # glBindBufferRange(GL_UNIFORM_BUFFER, UBS_MaterialProperties, m_materialPropertiesBuffer, (uint32_t)chunk.material->offset * matUniformSize, matUniformSize);
                 # TODO: this is very slow, it should be packed into an uniform buffer as per above!
                 for k, v in material["color"].items():
-                    glUniform3fv(magic.getUniformLocationDebug(shaderProgram, "material_%s_color" % k), 1, v)
-                glUniform1f(magic.getUniformLocationDebug(shaderProgram,
-                                                          "material_specular_exponent"), material["specularExponent"])
-                glUniform1f(magic.getUniformLocationDebug(shaderProgram, "material_alpha"), material["alpha"])
+                    # setting value so slightly different to set Uniform use
+                    glUniform3fv(magic.getUniformLocationDebug(self.shader.program, "material_%s_color" % k), 1, v)
+                # glUniform1f(magic.getUniformLocationDebug(shaderProgram,
+                #                                           "material_specular_exponent"), material["specularExponent"])
+                self.shader.setUniform("material_specular_exponent", material["specularExponent"])
+                # glUniform1f(magic.getUniformLocationDebug(shaderProgram, "material_alpha"), material["alpha"])
+                self.shader.setUniform("material_alpha", material["alpha"])
 
             glDrawArrays(GL_TRIANGLES, chunkOffset, chunkCount)
 
