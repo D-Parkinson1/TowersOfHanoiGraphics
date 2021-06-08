@@ -17,74 +17,21 @@ from Window import Window
 from math import radians, sin, cos, pi
 
 
+def solveHanoi(n, start, end, moves=[]):
+    if n == 1:
+        moves.append((start, end))
+        # print(start, " --> ", end)
+    else:
+        # rods labelled 1, 2, 3. 1 + 2 + 3 = 6
+        # assumed start != end, so to get other rod
+        other = 6 - (start + end)
+        solveHanoi(n-1, start, other, moves)
+        # print(start, " --> ", end)
+        moves.append((start, end))
+        solveHanoi(n-1, other, end, moves)
+
+
 class Hanoi:
-    # coords, colours, texcoords
-    # vertices = [
-    #     0.5,  0.5, 0.0,  1.0, 0.0, 0.0,  1.0, 1.0,
-    #     0.5, -0.5, 0.0,  0.0, 1.0, 0.0,  1.0, 0.0,
-    #     -0.5, -0.5, 0.0,  0.0, 0.0, 1.0,  0.0, 0.0,
-    #     -0.5,  0.5, 0.0,  1.0, 1.0, 0.0,  0.0, 1.0
-    # ]
-    # indices = [
-    #     0, 1, 3,
-    #     1, 2, 3
-    # ]
-    # cubeVertsTextureNormal = [
-    #     -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  0.0, 0.0,
-    #     0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  1.0, 0.0,
-    #     0.5,  0.5, -0.5,  0.0,  0.0, -1.0,  1.0, 1.0,
-    #     0.5,  0.5, -0.5,  0.0,  0.0, -1.0,  1.0, 1.0,
-    #     -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,  0.0, 1.0,
-    #     -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  0.0, 0.0,
-
-    #     -0.5, -0.5,  0.5,  0.0,  0.0, 1.0,   0.0, 0.0,
-    #     0.5, -0.5,  0.5,  0.0,  0.0, 1.0,   1.0, 0.0,
-    #     0.5,  0.5,  0.5,  0.0,  0.0, 1.0,   1.0, 1.0,
-    #     0.5,  0.5,  0.5,  0.0,  0.0, 1.0,   1.0, 1.0,
-    #     -0.5,  0.5,  0.5,  0.0,  0.0, 1.0,   0.0, 1.0,
-    #     -0.5, -0.5,  0.5,  0.0,  0.0, 1.0,   0.0, 0.0,
-
-    #     -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,  1.0, 0.0,
-    #     -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,  1.0, 1.0,
-    #     -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,  0.0, 1.0,
-    #     -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,  0.0, 1.0,
-    #     -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,  0.0, 0.0,
-    #     -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,  1.0, 0.0,
-
-    #     0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0, 0.0,
-    #     0.5,  0.5, -0.5,  1.0,  0.0,  0.0,  1.0, 1.0,
-    #     0.5, -0.5, -0.5,  1.0,  0.0,  0.0,  0.0, 1.0,
-    #     0.5, -0.5, -0.5,  1.0,  0.0,  0.0,  0.0, 1.0,
-    #     0.5, -0.5,  0.5,  1.0,  0.0,  0.0,  0.0, 0.0,
-    #     0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0, 0.0,
-
-    #     -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,  0.0, 1.0,
-    #     0.5, -0.5, -0.5,  0.0, -1.0,  0.0,  1.0, 1.0,
-    #     0.5, -0.5,  0.5,  0.0, -1.0,  0.0,  1.0, 0.0,
-    #     0.5, -0.5,  0.5,  0.0, -1.0,  0.0,  1.0, 0.0,
-    #     -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,  0.0, 0.0,
-    #     -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,  0.0, 1.0,
-
-    #     -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  0.0, 1.0,
-    #     0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  1.0, 1.0,
-    #     0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0, 0.0,
-    #     0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0, 0.0,
-    #     -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  0.0, 0.0,
-    #     -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  0.0, 1.0
-    # ]
-
-    # cubePositions = [
-    #     vec3(0.0,  0.0,  0.0),
-    #     vec3(2.0,  5.0, -15.0),
-    #     vec3(-1.5, -2.2, -2.5),
-    #     vec3(-3.8, -2.0, -12.3),
-    #     vec3(2.4, -0.4, -3.5),
-    #     vec3(-1.7,  3.0, -7.5),
-    #     vec3(1.3, -2.0, -2.5),
-    #     vec3(1.5,  2.0, -2.5),
-    #     vec3(1.5,  0.2, -1.5),
-    #     vec3(-1.3,  1.0, -1.5)
-    # ]
 
     def __init__(self, width=800, height=800, numRings=5):
         self.window = Window(width, height, "Towers of Hanoi", render=self.render,
@@ -114,6 +61,18 @@ class Hanoi:
 
         self.numRings = numRings
 
+        # playing animation
+        self.playing = False
+        self.justStopped = False
+        # Store solution permanently, so we can restart move animation
+        self.solution = []
+
+        # To be modified as animation plays
+
+        print(solveHanoi(numRings, 1, 3, self.solution))
+        self.moves = self.solution.copy()
+        print(self.solution)
+
         self.skybox = SkyBox('textures/skybox/')
 
     def processInput(self):
@@ -134,6 +93,12 @@ class Hanoi:
                 self.justChanged = True
         if(glfw.get_key(self.window._win, glfw.KEY_SPACE) == glfw.RELEASE):
             self.justChanged = False
+        if(glfw.get_key(self.window._win, glfw.KEY_P) == glfw.PRESS):
+            if not self.justStopped:
+                self.playing = not self.playing
+                self.justStopped = True
+        if(glfw.get_key(self.window._win, glfw.KEY_P) == glfw.RELEASE):
+            self.justStopped = False
 
     def mouseCallback(self, window, xPos, yPos):
         if (self.firstMouse):
@@ -191,31 +156,50 @@ class Hanoi:
 
         self.table = Obj.ObjModel('objects/table.obj', self.shader)
 
-        rods = []
+        self.rods = []
         for i in range(3):
             rod = Obj.ObjModel('objects/rod.obj', self.shader)
             rod.position = vec3(0.0, self.table.height, -1.0 + i)
-            rods.append(rod)
+            self.rods.append((rod, []))
             self.table.addChild(rod)
 
-        prevPos = rods[0].position
+        prevPos = self.rods[0][0].position
         for i in range(self.numRings):
             if i % 2:
                 torus = Obj.ObjModel('objects/torus.obj', self.shader, scale=(1-i/10))
             else:
                 torus = Obj.ObjModel('objects/metal_torus.obj', self.shader, scale=(1-i/10))
-
             if i == 0:
                 torus.position = prevPos
             else:
                 torus.position = prevPos + vec3(0.0, torus.height, 0.0)
             prevPos = torus.position
             self.objects.append(torus)
-
+            self.rods[0][1].append(torus)
         self.objects.append(self.table)
-
+        self.activeRing = None
+        # print(self.playMove())
         # For wireframe
         # glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+
+    def playMove(self, dt):
+        # Move ring up to y==2 then move sideways, then down on top of rings
+
+        # start and end between 1 and 3 inclusive
+
+        start, end = self.moves[0]
+        startRod, startRings = self.rods[start-1]
+        endRod, endRings = self.rods[end-1]
+        startHeight = sum(t.height for t in startRings) + startRod.position[1]
+        endHeight = sum(t.height for t in endRings) + endRod.position[1]
+
+        if not self.activeRing:
+            self.activeRing = startRings.pop()
+        if self.activeRing.position[1] <= 2.0:
+            self.activeRing.position[1] += dt
+        else:
+            if self.activeRing.position[2] <= endRod.position[2]:
+                self.activeRing.position[2] += dt
 
     def render(self, width, height):
         currentFrame = glfw.get_time()
@@ -260,6 +244,8 @@ class Hanoi:
         if self.justChanged:
             self.shader.setUniform("spotLight.on", self.spotLight)
 
+        if self.playing:
+            self.playMove(self.deltaTime)
         for obj in self.objects:
             obj.render(transforms={"view": view, "projection": projection})
 
@@ -268,5 +254,5 @@ class Hanoi:
 
 
 if __name__ == "__main__":
-    project = Hanoi()
+    project = Hanoi(numRings=2)
     project.start()
