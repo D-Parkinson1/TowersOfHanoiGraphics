@@ -46,7 +46,6 @@ class ObjModel:
 
         self.overrideDiffuseTextureWithDefault = False
         self.children = []
-        self.load(fileName)
 
         if shader:
             self.shader = shader
@@ -56,11 +55,13 @@ class ObjModel:
         self.position = vec3(0.0)
         if scale:
             if (isinstance(scale, int) or isinstance(scale, float)):
-                self.scale = make_scale(scale)
+                self.scale = vec3(scale)
             else:
-                self.scale = make_scale(*scale)
+                self.scale = vec3(*scale)
         else:
-            self.scale = make_scale(1.0)
+            self.scale = vec3(1.0)
+
+        self.load(fileName)
 
     def addChild(self, object):
         object.position += self.position
@@ -167,8 +168,8 @@ class ObjModel:
         self.aabbMin = npPos.min(0)
         self.aabbMax = npPos.max(0)
         self.centre = (self.aabbMin + self.aabbMax) * 0.5
-        self.height = round(self.aabbMax[1], 1)
-        self.position = vec3(*self.centre)
+        self.height = round(self.aabbMax[1] * self.scale[1], 4)
+        self.position = vec3(0.0)
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
@@ -299,7 +300,7 @@ class ObjModel:
 
         #     print(model.getData())
         parentModel = transforms.get("parentModel", Mat4())
-        model = parentModel * make_translation(*self.position) * self.scale
+        model = parentModel * make_translation(*self.position) * make_scale(*self.scale)
 
         # define defaults (identity)
         defaultTfms = {
@@ -311,7 +312,6 @@ class ObjModel:
 
         # overwrite defaults
         defaultTfms.update(transforms)
-
         for child in self.children:
             transforms.update({"parentModel": model})
             child.render(transforms=transforms)
