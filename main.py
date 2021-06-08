@@ -1,4 +1,5 @@
 
+from SkyBox import SkyBox
 import glfw
 from Camera import Camera, CameraMovement
 from LightSource import LightSource
@@ -112,6 +113,8 @@ class Hanoi:
         self.camera = Camera(vec3(-5, 2.5, 0), yawDeg=0)
 
         self.numRings = numRings
+
+        self.skybox = SkyBox('textures/skybox/')
 
     def processInput(self):
         if (glfw.get_key(self.window._win, glfw.KEY_ESCAPE) == glfw.PRESS):
@@ -256,6 +259,9 @@ class Hanoi:
 
         for obj in self.objects:
             obj.render(transforms={"view": view, "projection": projection})
+
+        # Render cubemap/skybox last
+        self.skybox.draw(view, projection)
 
 
 if __name__ == "__main__":
