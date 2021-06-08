@@ -5,7 +5,7 @@ import os
 from PIL import Image
 from ctypes import sizeof, c_float
 import magic
-import lab_utils as lu
+from lab_utils import Mat3, Mat4, inverse, make_scale, make_translation, transpose, vec3
 import numpy as np
 
 
@@ -39,18 +39,32 @@ class ObjModel:
     texturesByName = {}
     texturesById = {}
 
-    def __init__(self, fileName, shader=None):
+    def __init__(self, fileName, shader=None, scale: vec3 = None):
         # Create default textures
         self.defaultTextureOne = Texture()
         self.defaultNormalTexture = Texture(mapType="normal")
 
         self.overrideDiffuseTextureWithDefault = False
+        self.children = []
         self.load(fileName)
 
         if shader:
             self.shader = shader
         else:
-            self.shader = Shader(vertFile="shaders/objVert.glsl", fragFile='shaders/objFrag.glsl')
+            self.shader = Shader(vertFile="shaders/vertex.glsl", fragFile='shaders/fragment.glsl')
+
+        self.position = vec3(0.0)
+        if scale:
+            if (isinstance(scale, int) or isinstance(scale, float)):
+                self.scale = make_scale(scale)
+            else:
+                self.scale = make_scale(*scale)
+        else:
+            self.scale = make_scale(1.0)
+
+    def addChild(self, object):
+        object.position += self.position
+        self.children.append(object)
 
     def load(self, fileName):
         basePath, _ = os.path.split(fileName)
@@ -153,6 +167,8 @@ class ObjModel:
         self.aabbMin = npPos.min(0)
         self.aabbMax = npPos.max(0)
         self.centre = (self.aabbMin + self.aabbMax) * 0.5
+        self.height = round(self.aabbMax[1], 1)
+        self.position = vec3(*self.centre)
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
@@ -246,26 +262,6 @@ class ObjModel:
         try:
             texture = Texture(fullFileName, srgb=srgb)
             texId = texture.id
-            # im = Image.open(fullFileName)
-            # texId = glGenTextures(1)
-            # glActiveTexture(GL_TEXTURE0)
-            # glBindTexture(GL_TEXTURE_2D, texId)
-
-            # # NOTE: srgb is used to store pretty much all texture image data (except HDR images, which we don't support)
-            # # Thus we use the GL_SRGB_ALPHA to ensure they are correctly converted to linear space when loaded into the shader.
-            # # However: normal/bump maps/alpha masks, are typically authored in linear space, and so should not be stored as SRGB texture format.
-            # data = im.tobytes("raw", "RGBX" if im.mode == 'RGB' else "RGBA", 0, -1)
-            # glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA if srgb else GL_RGBA,
-            #              im.size[0], im.size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
-            # #print("    Loaded texture '%s' (%d x %d)"%(fileName, im.size[0], im.size[1]));
-            # glGenerateMipmap(GL_TEXTURE_2D)
-
-            # glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-            # glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
-            # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-            # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-            # #glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16);
-            # glBindTexture(GL_TEXTURE_2D, 0)
 
             self.texturesByName[fileName.lower()] = texture
             self.texturesById[texId] = fileName.lower()
@@ -293,32 +289,45 @@ class ObjModel:
         if not renderFlags:
             renderFlags = self.RF_All
 
-        # if not shaderProgram:
-        #     shaderProgram = self.defaultShader
-
         # Filter chunks based of render flags
         chunks = [ch for ch in self.chunks if ch[3] & renderFlags]
 
-        glBindVertexArray(self.vertexArrayObject)
-        # glUseProgram(shaderProgram)
-        self.shader.use()
+        # if transforms.get("parentPos") is None:
+        #     model = Mat4()
+        # else:
+        #     model = transforms.get("parentPos")
+
+        #     print(model.getData())
+        parentModel = transforms.get("parentModel", Mat4())
+        model = parentModel * make_translation(*self.position) * self.scale
 
         # define defaults (identity)
         defaultTfms = {
-            "modelToClipTransform": lu.Mat4(),
-            "modelToViewTransform": lu.Mat4(),
-            "modelToViewNormalTransform": lu.Mat3(),
+            "model": model,
+            "view": Mat4(),
+            "normalMat": Mat3(transpose(inverse(model))),
+            "projection": Mat4()
         }
+
         # overwrite defaults
         defaultTfms.update(transforms)
+
+        for child in self.children:
+            transforms.update({"parentModel": model})
+            child.render(transforms=transforms)
+
+        # Bind after children rendered
+        glBindVertexArray(self.vertexArrayObject)
+        self.shader.use()
+
         # upload map of transforms
         for tfmName, tfm in defaultTfms.items():
-            # loc = magic.getUniformLocationDebug(shaderProgram, tfmName)
-            # tfm._set_open_gl_uniform(loc)
             self.shader.setUniform(tfmName, tfm)
+            # assert magic.getUniformLocationDebug(self.shader.program, tfmName) != -1
 
         previousMaterial = None
         for material, chunkOffset, chunkCount, renderFlags in chunks:
+
             # as an optimization we only do this if the material has changed between chunks.
             # for more efficiency still consider sorting chunks based on material (or fusing them?)
             if material != previousMaterial:
@@ -339,10 +348,9 @@ class ObjModel:
                     glUniform3fv(magic.getUniformLocationDebug(self.shader.program, "material_%s_color" % k), 1, v)
                 # glUniform1f(magic.getUniformLocationDebug(shaderProgram,
                 #                                           "material_specular_exponent"), material["specularExponent"])
-                self.shader.setUniform("material_specular_exponent", material["specularExponent"])
+                self.shader.setUniform("material.shininess", material["specularExponent"])
                 # glUniform1f(magic.getUniformLocationDebug(shaderProgram, "material_alpha"), material["alpha"])
-                self.shader.setUniform("material_alpha", material["alpha"])
-
+                self.shader.setUniform("material.alpha", material["alpha"])
             glDrawArrays(GL_TRIANGLES, chunkOffset, chunkCount)
 
         glUseProgram(0)
@@ -357,11 +365,11 @@ class ObjModel:
     # for example an optimized shadow shader perhaps?
     def getDefaultAttributeBindings():
         return {
-            "positionAttribute": ObjModel.AA_Position,
-            "normalAttribute": ObjModel.AA_Normal,
-            "texCoordAttribute": ObjModel.AA_TexCoord,
-            "tangentAttribute": ObjModel.AA_Tangent,
-            "bitangentAttribute": ObjModel.AA_Bitangent,
+            "position": ObjModel.AA_Position,
+            "normal": ObjModel.AA_Normal,
+            "texCoord": ObjModel.AA_TexCoord,
+            "tangent": ObjModel.AA_Tangent,
+            "bitangent": ObjModel.AA_Bitangent,
         }
 
         #
@@ -375,4 +383,4 @@ class ObjModel:
         glUniform1i(magic.getUniformLocationDebug(shaderProgram, "opacity_texture"), ObjModel.TU_Opacity)
         glUniform1i(magic.getUniformLocationDebug(shaderProgram, "specular_texture"), ObjModel.TU_Specular)
         glUniform1i(magic.getUniformLocationDebug(shaderProgram, "normal_texture"), ObjModel.TU_Normal)
-        #glUniformBlockBinding(shaderProgram, glGetUniformBlockIndex(shaderProgram, "MaterialProperties"), UBS_MaterialProperties);
+        # glUniformBlockBinding(shaderProgram, glGetUniformBlockIndex(shaderProgram, "MaterialProperties"), UBS_MaterialProperties);

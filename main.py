@@ -17,14 +17,6 @@ from math import radians, sin, cos, pi
 
 
 class Hanoi:
-    # vao = None
-    # ebo = None
-    # shader = None
-    # texture1 = None
-    # texture2 = None
-    # texture3 = None
-    # light = None
-    # pointLights = []
     # coords, colours, texcoords
     vertices = [
         0.5,  0.5, 0.0,  1.0, 0.0, 0.0,  1.0, 1.0,
@@ -185,13 +177,20 @@ class Hanoi:
         self.shader.setUniform("dirLight.diffuse", vec3(0.4))
         self.shader.setUniform("dirLight.specular", vec3(0.5))
 
-        # self.pointLights.append(LightSource(vec3(1.0, 0.5, 3.0), None, vec3(0.83, 0.98, 1.0)))
-        # self.pointLights.append(LightSource(vec3(0.0, 1.0, 0.0), None, vec3(0.25, 0.25, 1.0)))
-        # self.pointLights.append(LightSource(vec3(-3.0, -2, 3.0), None, vec3(1.0, 0.3, 0.11)))
-        # self.pointLights.append(LightSource(vec3(2.0, 3, -3.0), None, vec3(0.25, 1.0, 0.11)))
+        self.pointLights.append(LightSource(vec3(1.0, 0.5, 3.0), None, vec3(0.83, 0.98, 1.0)))
+        self.pointLights.append(LightSource(vec3(0.0, 1.0, 0.0), None, vec3(0.25, 0.25, 1.0)))
+        self.pointLights.append(LightSource(vec3(-3.0, -2, 3.0), None, vec3(1.0, 0.3, 0.11)))
+        self.pointLights.append(LightSource(vec3(2.0, 3, -3.0), None, vec3(0.25, 1.0, 0.11)))
 
+        self.objects = []
         self.torus = Obj.ObjModel('objects/torus.obj', self.shader)
         self.table = Obj.ObjModel('objects/table.obj', self.shader)
+        self.rod = Obj.ObjModel('objects/rod.obj', self.shader)
+        self.rod.position = vec3(0.0, 1.5, 0.0)
+        self.table.addChild(self.rod)
+
+        self.objects.append(self.torus)
+        self.objects.append(self.table)
 
         # For wireframe
         # glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
@@ -238,15 +237,18 @@ class Hanoi:
         if self.justChanged:
             self.shader.setUniform("spotLight.on", self.spotLight)
 
-        self.table.render()
+        for obj in self.objects:
+            obj.render(transforms={"view": view, "projection": projection})
 
-        model2 = make_translation(0.0, 2.0, 0.0) * make_scale(0.5)
+        # self.table.render(transforms={"view": view, "projection": projection})
+        # self.rod.render()
+        # model2 = make_translation(0.0, 2.0*sin(currentFrame), 0.0) * make_scale(0.5)
         # modelToWorldTfm = make_translation(3.0, 0.0, 2.0)
         # modelToViewTransform = worldToViewTfm * modelToWorldTfm
         # modelToViewNormalTransform = inverse(
         #     transpose(Mat3(modelToViewTransform)))
-        self.torus.shader.setUniform("model", model2)
-        self.torus.render()
+        # self.torus.shader.setUniform("model", model2)
+        # self.torus.render(transforms={"model": model2, "view": view, "projection": projection})
         # transforms={'modelToViewNormalTransform': modelToViewNormalTransform, 'modelToWorldTfm': modelToWorldTfm})
         # transforms = {'modelToViewNormalTransform': modelToViewNormalTransform})
 
