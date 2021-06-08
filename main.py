@@ -85,7 +85,7 @@ class Hanoi:
         vec3(-1.3,  1.0, -1.5)
     ]
 
-    def __init__(self, width=800, height=800):
+    def __init__(self, width=800, height=800, numRings=5):
         self.window = Window(width, height, "Towers of Hanoi", render=self.render,
                              initResources=self.initResources, processInput=self.processInput)
         # Capture the mosuse
@@ -110,6 +110,8 @@ class Hanoi:
 
         self.pointLights = []
         self.camera = Camera(vec3(-5, 2.5, 0), yawDeg=0)
+
+        self.numRings = numRings
 
     def processInput(self):
         if (glfw.get_key(self.window._win, glfw.KEY_ESCAPE) == glfw.PRESS):
@@ -173,7 +175,7 @@ class Hanoi:
 
         # Directional light
         self.shader.setUniform("dirLight.direction", vec3(-0.2, -1.0, -0.3))
-        self.shader.setUniform("dirLight.ambient", vec3(0.05))
+        self.shader.setUniform("dirLight.ambient", vec3(0.5))
         self.shader.setUniform("dirLight.diffuse", vec3(0.4))
         self.shader.setUniform("dirLight.specular", vec3(0.5))
 
@@ -183,13 +185,28 @@ class Hanoi:
         self.pointLights.append(LightSource(vec3(2.0, 3, -3.0), None, vec3(0.25, 1.0, 0.11)))
 
         self.objects = []
-        self.torus = Obj.ObjModel('objects/torus.obj', self.shader)
-        self.table = Obj.ObjModel('objects/table.obj', self.shader)
-        self.rod = Obj.ObjModel('objects/rod.obj', self.shader)
-        self.rod.position = vec3(0.0, 1.5, 0.0)
-        self.table.addChild(self.rod)
 
-        self.objects.append(self.torus)
+        self.table = Obj.ObjModel('objects/table.obj', self.shader)
+
+        rods = []
+        for i in range(3):
+            rod = Obj.ObjModel('objects/rod.obj', self.shader)
+            rod.position = vec3(0.0, self.table.height, -1.0 + i)
+            rods.append(rod)
+            self.table.addChild(rod)
+
+        prevPos = rods[0].position
+        for i in range(self.numRings):
+            torus = Obj.ObjModel('objects/torus.obj', self.shader, scale=(1-i/10))
+            if i == 0:
+                torus.position = prevPos
+            else:
+                torus.position = prevPos + vec3(0.0, torus.height, 0.0)
+            prevPos = torus.position
+
+            print(torus.position)
+            self.objects.append(torus)
+
         self.objects.append(self.table)
 
         # For wireframe
@@ -239,18 +256,6 @@ class Hanoi:
 
         for obj in self.objects:
             obj.render(transforms={"view": view, "projection": projection})
-
-        # self.table.render(transforms={"view": view, "projection": projection})
-        # self.rod.render()
-        # model2 = make_translation(0.0, 2.0*sin(currentFrame), 0.0) * make_scale(0.5)
-        # modelToWorldTfm = make_translation(3.0, 0.0, 2.0)
-        # modelToViewTransform = worldToViewTfm * modelToWorldTfm
-        # modelToViewNormalTransform = inverse(
-        #     transpose(Mat3(modelToViewTransform)))
-        # self.torus.shader.setUniform("model", model2)
-        # self.torus.render(transforms={"model": model2, "view": view, "projection": projection})
-        # transforms={'modelToViewNormalTransform': modelToViewNormalTransform, 'modelToWorldTfm': modelToWorldTfm})
-        # transforms = {'modelToViewNormalTransform': modelToViewNormalTransform})
 
 
 if __name__ == "__main__":
