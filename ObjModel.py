@@ -50,8 +50,10 @@ class ObjModel:
         if shader:
             self.shader = shader
         else:
-            self.shader = Shader(vertFile="shaders/vertex.glsl", fragFile='shaders/fragment.glsl')
+            self.shader = Shader(vertFile="shaders/objVert.glsl", fragFile='shaders/objFrag.glsl')
 
+        self.shader.use()
+        self.setDefaultUniformBindings(self.shader.program)
         self.position = vec3(0.0)
         if scale:
             if (isinstance(scale, int) or isinstance(scale, float)):
@@ -293,12 +295,6 @@ class ObjModel:
         # Filter chunks based of render flags
         chunks = [ch for ch in self.chunks if ch[3] & renderFlags]
 
-        # if transforms.get("parentPos") is None:
-        #     model = Mat4()
-        # else:
-        #     model = transforms.get("parentPos")
-
-        #     print(model.getData())
         parentModel = transforms.get("parentModel", Mat4())
         model = parentModel * make_translation(*self.position) * make_scale(*self.scale)
 
@@ -345,11 +341,8 @@ class ObjModel:
                 # TODO: this is very slow, it should be packed into an uniform buffer as per above!
                 for k, v in material["color"].items():
                     # setting value so slightly different to set Uniform use
-                    glUniform3fv(magic.getUniformLocationDebug(self.shader.program, "material_%s_color" % k), 1, v)
-                # glUniform1f(magic.getUniformLocationDebug(shaderProgram,
-                #                                           "material_specular_exponent"), material["specularExponent"])
+                    glUniform3fv(magic.getUniformLocationDebug(self.shader.program, "material.%s_colour" % k), 1, v)
                 self.shader.setUniform("material.shininess", material["specularExponent"])
-                # glUniform1f(magic.getUniformLocationDebug(shaderProgram, "material_alpha"), material["alpha"])
                 self.shader.setUniform("material.alpha", material["alpha"])
             glDrawArrays(GL_TRIANGLES, chunkOffset, chunkCount)
 
@@ -363,7 +356,7 @@ class ObjModel:
 
     # useful to get the default bindings that the ObjModel will use when rendering, use to set up own shaders
     # for example an optimized shadow shader perhaps?
-    def getDefaultAttributeBindings():
+    def getDefaultAttributeBindings(self):
         return {
             "position": ObjModel.AA_Position,
             "normal": ObjModel.AA_Normal,
@@ -376,7 +369,7 @@ class ObjModel:
         # Helper to set the default uniforms provided by ObjModel. This only needs to be done once after creating the shader
         # NOTE: the shader must be bound when calling this function.
 
-    def setDefaultUniformBindings(shaderProgram):
+    def setDefaultUniformBindings(self, shaderProgram):
         assert glGetIntegerv(GL_CURRENT_PROGRAM) == shaderProgram
 
         glUniform1i(magic.getUniformLocationDebug(shaderProgram, "diffuse_texture"), ObjModel.TU_Diffuse)
