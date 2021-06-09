@@ -55,13 +55,13 @@ class ObjModel:
         self.shader.use()
         self.setDefaultUniformBindings(self.shader.program)
         self.position = vec3(0.0)
-        if scale:
+        if scale is None:
+            self.scale = vec3(1.0)
+        else:
             if (isinstance(scale, int) or isinstance(scale, float)):
                 self.scale = vec3(scale)
             else:
                 self.scale = vec3(*scale)
-        else:
-            self.scale = vec3(1.0)
 
         self.load(fileName)
 
@@ -170,7 +170,7 @@ class ObjModel:
         self.aabbMin = npPos.min(0)
         self.aabbMax = npPos.max(0)
         self.centre = (self.aabbMin + self.aabbMax) * 0.5
-        self.height = round(self.aabbMax[1] * self.scale[1], 4)
+        self.height = round(self.aabbMax[1] * self.scale[1], 6)
         self.position = vec3(0.0)
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
@@ -342,7 +342,7 @@ class ObjModel:
                 for k, v in material["color"].items():
                     # setting value so slightly different to set Uniform use
                     glUniform3fv(magic.getUniformLocationDebug(self.shader.program, "material.%s_colour" % k), 1, v)
-                self.shader.setUniform("material.shininess", material["specularExponent"])
+                self.shader.setUniform("material.specular_exponent", material["specularExponent"])
                 self.shader.setUniform("material.alpha", material["alpha"])
             glDrawArrays(GL_TRIANGLES, chunkOffset, chunkCount)
 
