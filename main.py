@@ -8,7 +8,7 @@ from ctypes import c_float, c_void_p
 from OpenGL.GL import *
 import ObjModel as Obj
 
-from lab_utils import Mat3, inverse, make_perspective, make_rotation_x, make_rotation_y, make_rotation_z, normalize, transpose, vec3, Mat4, make_lookAt, make_scale, make_translation
+from lab_utils import Mat3, inverse, length, make_perspective, make_rotation_x, make_rotation_y, make_rotation_z, normalize, transpose, vec3, Mat4, make_lookAt, make_scale, make_translation
 
 from Shader import Shader
 from Window import Window
@@ -20,13 +20,11 @@ from math import radians, sin, cos, pi
 def solveHanoi(n, start, end, moves=[]):
     if n == 1:
         moves.append((start, end))
-        # print(start, " --> ", end)
     else:
         # rods labelled 1, 2, 3. 1 + 2 + 3 = 6
         # assumed start != end, so to get other rod
         other = 6 - (start + end)
         solveHanoi(n-1, start, other, moves)
-        # print(start, " --> ", end)
         moves.append((start, end))
         solveHanoi(n-1, other, end, moves)
 
@@ -67,11 +65,12 @@ class Hanoi:
         # Store solution permanently, so we can restart move animation
         self.solution = []
 
+        # Chagne rate of animation updates
+        self.ticks = 0
         # To be modified as animation plays
 
         solveHanoi(numRings, 1, 3, self.solution)
-        self.moves = []  # self.solution.copy()
-        print("SOLUTION:", self.solution)
+        self.moves = []
 
         self.skybox = SkyBox('textures/skybox/')
 
@@ -178,16 +177,15 @@ class Hanoi:
             self.rods[0][1].append(torus)
         self.objects.append(self.table)
         self.activeRing = None
-        # print(self.playMove())
         # For wireframe
         # glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
         self.genMoves()
-        print([x["endPos"] for x in self.moves])
+        print([(x["start"], x["end"]) for x in list(reversed(self.moves))])
+        self.moves = list(reversed(self.moves))
         self.currentMove = self.getNextMove()
 
     def genMoves(self):
-        maxHeight = 2
         # moves is a stack, so first in last out
         # each move has 3 steps:
         #   lift off pole
@@ -196,44 +194,33 @@ class Hanoi:
 
         # Copy rods for local updates to gen move
         # Leave class state the same, so we don't have to reset
-        rods = self.rods.copy()
+        # rods = self.rods.copy()
+        rods = [self.rods[i][1].copy() for i in range(3)]
+
         for step in self.solution:
             start, end = step
-            # start and end between 1 and 3 inclusive
-            startRod, startRings = rods[start-1]
-            endRod, endRings = rods[end-1]
+            maxHeight = 2
+            # print(step, self.rods[start-1][1])
 
-            moveDir = endRod.position - startRod.position
+            # print(self.rods[end-1][0].position)
+            # Move object from current position to end position
+            obj = rods[start-1].pop()
 
-            endHeight = sum(t.height for t in endRings) + endRod.position[1]
-            activeRing = startRings.pop()
-            # print(step, endRings, endHeight, endRod.position)
-            moveUp = {
-                "obj": activeRing,
-                "dir": vec3(0, 1, 0),
-                "endPos": maxHeight * vec3(0, 1, 0),
-                "complete": False
+            def createCallback(startRod, endRod):
+                def onComplete():
+                    print(startRod, endRod)
+                    self.rods[endRod][1].append(self.rods[startRod][1].pop())
+                return onComplete
+            move = {
+                "obj": obj,
+                "target": self.rods[end-1][0].position.copy(),
+                "start": start,
+                "end": end,
+                "complete": False,
+                "onComplete": createCallback(start-1, end-1)
             }
-
-            moveTo = {
-                "obj": activeRing,
-                "dir": moveDir,
-                "endPos": endRod.position,
-                "complete": False
-            }
-            # print(moveTo)
-            moveDown = {
-                "obj": activeRing,
-                "dir": vec3(0, -1, 0),
-                "endPos":  endHeight * vec3(0, 1, 0),
-                "complete": False
-            }
-
-            self.moves.append(moveDown)
-            self.moves.append(moveTo)
-            self.moves.append(moveUp)
-
-            rods[end-1][1].append(activeRing)
+            rods[end-1].append(obj)
+            self.moves.append(move)
 
     def resetRods(self):
         # Called when animation complete
@@ -251,18 +238,21 @@ class Hanoi:
         return self.moves.pop()
 
     def playMove(self, dt):
-        if (self.currentMove is None):
+        if self.currentMove is None:
             return
-        if self.currentMove.get("complete"):
+        elif self.currentMove["complete"]:
             self.currentMove = self.getNextMove()
-            if (self.currentMove is None):
-                return
+            return
 
         obj = self.currentMove["obj"]
-        direction = self.currentMove["dir"]
-        endPos = self.currentMove["endPos"]
-        obj.position += dt*direction
-        if (obj.position*direction > endPos*direction).any():
+        target = self.currentMove["target"]
+        startRod = self.currentMove["start"]-1
+        endRod = self.currentMove["end"]-1
+        direction = normalize(target - obj.position)
+        obj.position += dt * direction
+        if (length(target - obj.position) <= 0.02):
+            obj.position = target
+            self.currentMove["onComplete"]()
             self.currentMove["complete"] = True
 
     def render(self, width, height):
@@ -290,7 +280,7 @@ class Hanoi:
         for i in range(len(self.pointLights)):
             light = self.pointLights[i]
             self.shader.setUniform("pointLights[%s].position" % i, light.position)
-            self.shader.setUniform("pointLights[%s].ambient" % i, vec3(0.05)*light.colour)
+            self.shader.setUniform("pointLights[%s].ambient" % i, vec3(0.2)*light.colour)
             self.shader.setUniform("pointLights[%s].diffuse" % i, vec3(0.8)*light.colour)
             self.shader.setUniform("pointLights[%s].specular" % i, vec3(1.0)*light.colour)
             self.shader.setUniform("pointLights[%s].constant" % i, 1.0)
@@ -309,7 +299,11 @@ class Hanoi:
             self.shader.setUniform("spotLight.on", self.spotLight)
 
         if self.playing:
-            self.playMove(self.deltaTime)
+            if self.ticks == 0:
+                self.playMove(self.deltaTime)
+                self.ticks = 0
+            else:
+                self.ticks += 1
 
         for obj in self.objects:
             obj.render(transforms={"view": view, "projection": projection})
