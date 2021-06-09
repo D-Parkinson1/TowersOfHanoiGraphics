@@ -8,7 +8,7 @@ class Texture:
 
         if (not filePath):
             # Make a daefault texture
-            print("Using default texture")
+            # print("Using default texture")
             self.id = glGenTextures(1)
             glBindTexture(GL_TEXTURE_2D, self.id)
             if mapType == "normal":
