@@ -192,35 +192,57 @@ class Hanoi:
         #   move to destination
         #   lower onto pole
 
-        # Copy rods for local updates to gen move
+        # Copy list of rings on rods
         # Leave class state the same, so we don't have to reset
-        # rods = self.rods.copy()
         rods = [self.rods[i][1].copy() for i in range(3)]
 
         for step in self.solution:
             start, end = step
             maxHeight = 2
-            # print(step, self.rods[start-1][1])
 
-            # print(self.rods[end-1][0].position)
-            # Move object from current position to end position
             obj = rods[start-1].pop()
 
             def createCallback(startRod, endRod):
                 def onComplete():
-                    print(startRod, endRod)
                     self.rods[endRod][1].append(self.rods[startRod][1].pop())
                 return onComplete
+
+            def nothingCallback():
+                pass
+
+            endHeight = sum(t.height for t in rods[end-1])
+            endRodPos = self.rods[end-1][0].position.copy()
+            startRodPos = self.rods[start-1][0].position.copy()
+            moveUp = {
+                "obj": obj,
+                "target": startRodPos + vec3(0, maxHeight-endRodPos[1], 0),
+                "start": start,
+                "end": end,
+                "complete": False,
+                "onComplete": nothingCallback
+            }
+
             move = {
                 "obj": obj,
-                "target": self.rods[end-1][0].position.copy(),
+                "target": endRodPos + vec3(0, maxHeight-endRodPos[1], 0),
+                "start": start,
+                "end": end,
+                "complete": False,
+                "onComplete": nothingCallback
+            }
+
+            moveDown = {
+                "obj": obj,
+                "target": endRodPos + vec3(0, endHeight, 0),
                 "start": start,
                 "end": end,
                 "complete": False,
                 "onComplete": createCallback(start-1, end-1)
             }
             rods[end-1].append(obj)
+            self.moves.append(moveUp)
             self.moves.append(move)
+            self.moves.append(moveDown)
 
     def resetRods(self):
         # Called when animation complete
@@ -231,9 +253,8 @@ class Hanoi:
     def getNextMove(self):
         if len(self.moves) == 0:
             # Updates self.moves
-            print("\n**************************RESET MOVES****************************\n")
-            # self.resetRods()
-            # self.genMoves()
+            self.resetRods()
+            self.genMoves()
             return None
         return self.moves.pop()
 
@@ -313,5 +334,5 @@ class Hanoi:
 
 
 if __name__ == "__main__":
-    project = Hanoi(numRings=5)
+    project = Hanoi(numRings=2)
     project.start()
