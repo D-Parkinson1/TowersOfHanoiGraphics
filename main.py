@@ -8,7 +8,7 @@ from ctypes import c_float, c_void_p
 from OpenGL.GL import *
 import ObjModel as Obj
 
-from lab_utils import Mat3, inverse, make_perspective, make_rotation_x, make_rotation_y, make_rotation_z, transpose, vec3, Mat4, make_lookAt, make_scale, make_translation
+from lab_utils import Mat3, inverse, make_perspective, make_rotation_x, make_rotation_y, make_rotation_z, normalize, transpose, vec3, Mat4, make_lookAt, make_scale, make_translation
 
 from Shader import Shader
 from Window import Window
@@ -69,9 +69,9 @@ class Hanoi:
 
         # To be modified as animation plays
 
-        print(solveHanoi(numRings, 1, 3, self.solution))
-        self.moves = self.solution.copy()
-        print(self.solution)
+        solveHanoi(numRings, 1, 3, self.solution)
+        self.moves = []  # self.solution.copy()
+        print("SOLUTION:", self.solution)
 
         self.skybox = SkyBox('textures/skybox/')
 
@@ -158,12 +158,12 @@ class Hanoi:
 
         self.rods = []
         for i in range(3):
-            rod = Obj.ObjModel('objects/rod.obj', self.shader)
+            rod = Obj.ObjModel('objects/rod.obj', self.shader, scale=vec3(2))
             rod.position = vec3(0.0, self.table.height, -1.0 + i)
             self.rods.append((rod, []))
             self.table.addChild(rod)
 
-        prevPos = self.rods[0][0].position
+        prevPos = self.rods[0][0].position.copy()
         for i in range(self.numRings):
             if i % 2:
                 torus = Obj.ObjModel('objects/torus.obj', self.shader, scale=(1-i/10))
@@ -182,24 +182,88 @@ class Hanoi:
         # For wireframe
         # glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
+        self.genMoves()
+        print([x["endPos"] for x in self.moves])
+        self.currentMove = self.getNextMove()
+
+    def genMoves(self):
+        maxHeight = 2
+        # moves is a stack, so first in last out
+        # each move has 3 steps:
+        #   lift off pole
+        #   move to destination
+        #   lower onto pole
+
+        # Copy rods for local updates to gen move
+        # Leave class state the same, so we don't have to reset
+        rods = self.rods.copy()
+        for step in self.solution:
+            start, end = step
+            # start and end between 1 and 3 inclusive
+            startRod, startRings = rods[start-1]
+            endRod, endRings = rods[end-1]
+
+            moveDir = endRod.position - startRod.position
+
+            endHeight = sum(t.height for t in endRings) + endRod.position[1]
+            activeRing = startRings.pop()
+            # print(step, endRings, endHeight, endRod.position)
+            moveUp = {
+                "obj": activeRing,
+                "dir": vec3(0, 1, 0),
+                "endPos": maxHeight * vec3(0, 1, 0),
+                "complete": False
+            }
+
+            moveTo = {
+                "obj": activeRing,
+                "dir": moveDir,
+                "endPos": endRod.position,
+                "complete": False
+            }
+            # print(moveTo)
+            moveDown = {
+                "obj": activeRing,
+                "dir": vec3(0, -1, 0),
+                "endPos":  endHeight * vec3(0, 1, 0),
+                "complete": False
+            }
+
+            self.moves.append(moveDown)
+            self.moves.append(moveTo)
+            self.moves.append(moveUp)
+
+            rods[end-1][1].append(activeRing)
+
+    def resetRods(self):
+        # Called when animation complete
+        # All rings on rod 3 Need to move to rod 1
+        for i in range(len(self.rods[2][1])):
+            self.rods[0][1].append(self.rods[2][1].pop(0))
+
+    def getNextMove(self):
+        if len(self.moves) == 0:
+            # Updates self.moves
+            print("\n**************************RESET MOVES****************************\n")
+            # self.resetRods()
+            # self.genMoves()
+            return None
+        return self.moves.pop()
+
     def playMove(self, dt):
-        # Move ring up to y==2 then move sideways, then down on top of rings
+        if (self.currentMove is None):
+            return
+        if self.currentMove.get("complete"):
+            self.currentMove = self.getNextMove()
+            if (self.currentMove is None):
+                return
 
-        # start and end between 1 and 3 inclusive
-
-        start, end = self.moves[0]
-        startRod, startRings = self.rods[start-1]
-        endRod, endRings = self.rods[end-1]
-        startHeight = sum(t.height for t in startRings) + startRod.position[1]
-        endHeight = sum(t.height for t in endRings) + endRod.position[1]
-
-        if not self.activeRing:
-            self.activeRing = startRings.pop()
-        if self.activeRing.position[1] <= 2.0:
-            self.activeRing.position[1] += dt
-        else:
-            if self.activeRing.position[2] <= endRod.position[2]:
-                self.activeRing.position[2] += dt
+        obj = self.currentMove["obj"]
+        direction = self.currentMove["dir"]
+        endPos = self.currentMove["endPos"]
+        obj.position += dt*direction
+        if (obj.position*direction > endPos*direction).any():
+            self.currentMove["complete"] = True
 
     def render(self, width, height):
         currentFrame = glfw.get_time()
@@ -246,6 +310,7 @@ class Hanoi:
 
         if self.playing:
             self.playMove(self.deltaTime)
+
         for obj in self.objects:
             obj.render(transforms={"view": view, "projection": projection})
 
@@ -254,5 +319,5 @@ class Hanoi:
 
 
 if __name__ == "__main__":
-    project = Hanoi(numRings=2)
+    project = Hanoi(numRings=5)
     project.start()
