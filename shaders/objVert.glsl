@@ -14,14 +14,12 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat3 normalMat;
+
 //uniform mat3 modelToViewNormalTransform;
-
-// For a pixel shader the variable is interpolated (the type of interpolation can be modified, try placing 'flat' in front, and also in the fragment shader!).
-
 
 void main() 
 {
-	gl_Position = modelToClipTransform * vec4(position, 1.0);
+	gl_Position = projection * view * model * vec4(position, 1.0);
 
 	v2f_viewSpaceNormal = normalize(normalMat * normal);
 

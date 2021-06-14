@@ -7,18 +7,13 @@ in VertexData
 };
 
 // Material properties uniform buffer, required by OBJModel.
-// 'MaterialProperties' must be bound to a uniform buffer, OBJModel::setDefaultUniformBindings is of help!
-
 struct Material {
-    vec3 diffuse_color;
+    vec3 diffuse_colour;
     float alpha;
-    vec3 specular_color;
-    vec3 emissive_color;
+    vec3 specular_colour;
+    vec3 emissive_colour;
     float specular_exponent;
 };
-
-uniform Material material;
-
 
 // Textures set by OBJModel (names must be bound to the right texture unit, OBJModel::setDefaultUniformBindings helps with that.
 uniform sampler2D diffuse_texture;
@@ -28,13 +23,14 @@ uniform sampler2D normal_texture;
 
 // Other uniforms used by the shader
 uniform vec3 viewSpaceLightDirection;
+uniform Material material;
 
-out vec4 fragmentColor;
+out vec4 fragmentcolour;
 
 // If we do not convert the colour to srgb before writing it out it looks terrible! All our lighting is done in linear space
 // (which it should be!), and the frame buffer is srgb by default. So we must convert, or somehow create a linear frame buffer...
-vec3 toSrgb(vec3 color) {
-  return pow(color, vec3(1.0 / 2.2));
+vec3 toSrgb(vec3 colour) {
+  return pow(colour, vec3(1.0 / 2.2));
 }
 
 void main() {
@@ -44,7 +40,7 @@ void main() {
 		discard;
 	}
 
-	vec3 materialDiffuse = texture(diffuse_texture, v2f_texCoord).xyz * material.diffuse_color;
-	vec3 color = materialDiffuse * (0.1 + 0.9 * max(0.0, dot(v2f_viewSpaceNormal, -viewSpaceLightDirection))) + material.emissive_color;
-	fragmentColor = vec4(1.0);//vec4(toSrgb(color), material.alpha);
+	vec3 materialDiffuse = texture(diffuse_texture, v2f_texCoord).xyz * material.diffuse_colour;
+	vec3 colour = materialDiffuse * (0.1 + 0.9 * max(0.0, dot(v2f_viewSpaceNormal, -viewSpaceLightDirection))) + material.emissive_colour;
+	fragmentcolour = vec4(toSrgb(colour), material.alpha);
 }
