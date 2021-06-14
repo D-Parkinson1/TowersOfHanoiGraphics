@@ -1,6 +1,9 @@
 #VSCode
 .vscode
 
+#directories
+blender
+
 ############PYTHON#################
 # Byte-compiled / optimized / DLL files
 __pycache__/
