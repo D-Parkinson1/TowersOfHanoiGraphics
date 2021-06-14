@@ -382,3 +382,11 @@ def flatten(*lll):
 def transformPoint(mat4x4, point):
     x, y, z, w = mat4x4 * [point[0], point[1], point[2], 1.0]
     return vec3(x, y, z) / w
+
+
+def getUniformLocationDebug(shaderProgram, name):
+    loc = glGetUniformLocation(shaderProgram, name)
+    # Useful point for debugging, replace with silencable logging
+    # if loc == -1:
+    #     print("Uniform '%s' was not found" % name)
+    return loc

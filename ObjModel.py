@@ -4,8 +4,7 @@ from OpenGL.GL import *
 import os
 from PIL import Image
 from ctypes import sizeof, c_float
-import magic
-from lab_utils import Mat3, Mat4, inverse, make_scale, make_translation, transpose, vec3
+from lab_utils import Mat3, Mat4, getUniformLocationDebug, inverse, make_scale, make_translation, transpose, vec3
 import numpy as np
 
 
@@ -341,7 +340,7 @@ class ObjModel:
                 # TODO: this is very slow, it should be packed into an uniform buffer as per above!
                 for k, v in material["color"].items():
                     # setting value so slightly different to set Uniform use
-                    glUniform3fv(magic.getUniformLocationDebug(self.shader.program, "material.%s_colour" % k), 1, v)
+                    glUniform3fv(getUniformLocationDebug(self.shader.program, "material.%s_colour" % k), 1, v)
                 self.shader.setUniform("material.specular_exponent", material["specularExponent"])
                 self.shader.setUniform("material.alpha", material["alpha"])
             glDrawArrays(GL_TRIANGLES, chunkOffset, chunkCount)
@@ -372,8 +371,8 @@ class ObjModel:
     def setDefaultUniformBindings(self, shaderProgram):
         assert glGetIntegerv(GL_CURRENT_PROGRAM) == shaderProgram
 
-        glUniform1i(magic.getUniformLocationDebug(shaderProgram, "diffuse_texture"), ObjModel.TU_Diffuse)
-        glUniform1i(magic.getUniformLocationDebug(shaderProgram, "opacity_texture"), ObjModel.TU_Opacity)
-        glUniform1i(magic.getUniformLocationDebug(shaderProgram, "specular_texture"), ObjModel.TU_Specular)
-        glUniform1i(magic.getUniformLocationDebug(shaderProgram, "normal_texture"), ObjModel.TU_Normal)
+        glUniform1i(getUniformLocationDebug(shaderProgram, "diffuse_texture"), ObjModel.TU_Diffuse)
+        glUniform1i(getUniformLocationDebug(shaderProgram, "opacity_texture"), ObjModel.TU_Opacity)
+        glUniform1i(getUniformLocationDebug(shaderProgram, "specular_texture"), ObjModel.TU_Specular)
+        glUniform1i(getUniformLocationDebug(shaderProgram, "normal_texture"), ObjModel.TU_Normal)
         # glUniformBlockBinding(shaderProgram, glGetUniformBlockIndex(shaderProgram, "MaterialProperties"), UBS_MaterialProperties);
