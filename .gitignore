@@ -2,7 +2,7 @@
 .vscode
 
 #directories
-blender
+blender/
 
 ############PYTHON#################
 # Byte-compiled / optimized / DLL files
@@ -134,3 +134,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+blender/ring.blend
+blender/ring.blend
