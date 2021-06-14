@@ -181,7 +181,6 @@ class Hanoi:
         # glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
         self.genMoves()
-        print([(x["start"], x["end"]) for x in list(reversed(self.moves))])
         self.moves = list(reversed(self.moves))
         self.currentMove = self.getNextMove()
 
